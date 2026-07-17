@@ -109,6 +109,7 @@ interface EditorStore {
 
   // Preference Actions
   updatePreferences: (prefs: Partial<UserPreferences>) => void;
+  addRecentBackgroundColor: (color: string) => void;
 }
 
 export const useEditorStore = create<EditorStore>()(
@@ -411,6 +412,23 @@ export const useEditorStore = create<EditorStore>()(
             (prev: EditorStore) => ({ preferences: { ...prev.preferences, ...prefs } }),
             false,
             'updatePreferences'
+          );
+        },
+
+        addRecentBackgroundColor: (color: string) => {
+          set(
+            (prev: EditorStore) => {
+              const current = prev.preferences.recentBackgroundColors || [];
+              const filtered = current.filter(c => c.toLowerCase() !== color.toLowerCase());
+              return {
+                preferences: {
+                  ...prev.preferences,
+                  recentBackgroundColors: [color, ...filtered].slice(0, 5)
+                }
+              };
+            },
+            false,
+            'addRecentBackgroundColor'
           );
         },
       }),

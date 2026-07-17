@@ -37,6 +37,7 @@ export interface Project {
   updatedAt: number;
   thumbnailUrl?: string;
   originalImage: OriginalImage | null;
+  originalImageBeforeUpscale?: string | null;
   editingState: EditingState;
 }
 
@@ -157,6 +158,7 @@ export interface UserPreferences {
   lastExportQuality: number;
   showStatusBar: boolean;
   autoSave: boolean;
+  recentBackgroundColors: string[];
 }
 
 export const DEFAULT_PREFERENCES: UserPreferences = {
@@ -165,6 +167,7 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   lastExportQuality: 95,
   showStatusBar: true,
   autoSave: true,
+  recentBackgroundColors: [],
 };
 
 // --------------------------------------------------------------------------
