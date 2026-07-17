@@ -61,8 +61,8 @@ Because this application handles personal identification photos, it was architec
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/natraj-passport-studio.git
-   cd natraj-passport-studio
+   git clone https://github.com/Am24an/Natraj-Mixing-Lab.git
+   cd Natraj-Mixing-Lab
    ```
 
 2. Install dependencies:
