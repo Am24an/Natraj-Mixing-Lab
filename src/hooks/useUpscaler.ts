@@ -32,10 +32,12 @@ export function useUpscaler() {
       setProgress(5);
 
       // Dynamically import to keep bundle small
-      const [{ default: Upscaler }] = await Promise.all([
+      const [{ default: Upscaler }, tf] = await Promise.all([
         import('upscaler'),
         import('@tensorflow/tfjs') // Import tfjs so it initializes
       ]);
+
+      await tf.ready(); // Ensure TF backend is initialized
 
       setProgress(20);
 
@@ -66,6 +68,7 @@ export function useUpscaler() {
         return {
           project: {
             ...prev.project,
+            originalImageBeforeUpscale: prev.project.originalImage.dataUrl,
             originalImage: {
               ...prev.project.originalImage,
               dataUrl: upscaledDataUrl,

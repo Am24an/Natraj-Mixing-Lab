@@ -1,4 +1,4 @@
-import { useEditorStore } from '@/stores/editorStore';
+import { useEditorStore, usePreferences } from '@/stores/editorStore';
 import { PASSPORT_COLOR_PRESETS } from '@/types';
 import { cn } from '@/utils/cn';
 import { useRef } from 'react';
@@ -8,11 +8,19 @@ import { Button } from '@/components/ui/Button';
 export function BackgroundColorPanel() {
   const background = useEditorStore((s) => s.project?.editingState.background);
   const setBackgroundColor = useEditorStore((s) => s.setBackgroundColor);
+  const addRecentBackgroundColor = useEditorStore((s) => s.addRecentBackgroundColor);
+  const preferences = usePreferences();
   const colorInputRef = useRef<HTMLInputElement>(null);
 
   if (!background) return null;
 
   const currentColor = background.replacementColor ?? '#FFFFFF';
+  const recentColors = preferences?.recentBackgroundColors || [];
+
+  const handleColorChange = (color: string) => {
+    setBackgroundColor(color);
+    addRecentBackgroundColor(color);
+  };
 
   return (
     <div
@@ -49,7 +57,7 @@ export function BackgroundColorPanel() {
                 ref={colorInputRef}
                 type="color"
                 value={currentColor}
-                onChange={(e) => setBackgroundColor(e.target.value)}
+                onChange={(e) => handleColorChange(e.target.value)}
                 className="absolute opacity-0 w-0 h-0 pointer-events-none"
               />
             </div>
@@ -60,7 +68,7 @@ export function BackgroundColorPanel() {
               onChange={(e) => {
                 const v = e.target.value;
                 if (/^#[0-9A-Fa-f]{0,6}$/.test(v)) {
-                  if (/^#[0-9A-Fa-f]{6}$/.test(v)) setBackgroundColor(v);
+                  if (/^#[0-9A-Fa-f]{6}$/.test(v)) handleColorChange(v);
                 }
               }}
               maxLength={7}
@@ -81,6 +89,31 @@ export function BackgroundColorPanel() {
         </Button>
       </div>
 
+      {/* Recent Colors */}
+      {recentColors.length > 0 && (
+        <div className="pt-2">
+          <h3 className="text-[12px] font-semibold text-[var(--color-text-muted)] uppercase tracking-wider mb-3">
+            Recent Colors
+          </h3>
+          <div className="flex gap-2">
+            {recentColors.map((color, i) => (
+              <button
+                key={i}
+                onClick={() => handleColorChange(color)}
+                title={`Recent: ${color.toUpperCase()}`}
+                className={cn(
+                  'w-8 h-8 rounded-full border transition-all cursor-pointer flex-shrink-0',
+                  background.replacementColor === color
+                    ? 'border-[var(--color-primary)] ring-2 ring-[var(--color-primary)]/20'
+                    : 'border-[var(--color-border)] hover:border-[var(--color-primary)]/50'
+                )}
+                style={{ background: color }}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Passport Presets */}
       <div className="pt-2">
         <h3 className="text-[12px] font-semibold text-[var(--color-text-muted)] uppercase tracking-wider mb-3">
@@ -92,7 +125,7 @@ export function BackgroundColorPanel() {
             return (
               <button
                 key={preset.id}
-                onClick={() => setBackgroundColor(preset.color)}
+                onClick={() => handleColorChange(preset.color)}
                 title={`${preset.name} — ${preset.description}`}
                 className={cn(
                   'flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer bg-[var(--color-surface)] shadow-sm min-w-0',

@@ -211,6 +211,33 @@ function ImageCanvas({ project, activeTool }: ImageCanvasProps) {
         </div>
       )}
 
+      {/* Upscale Indicator */}
+      {project.originalImageBeforeUpscale && (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 'var(--space-md)',
+            right: 'var(--space-md)',
+            background: 'var(--color-surface)',
+            border: '1px solid var(--color-border)',
+            borderRadius: 'var(--radius-full)',
+            padding: '4px 12px',
+            fontSize: '12px',
+            fontWeight: 500,
+            color: 'var(--color-text-primary)',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            pointerEvents: 'none',
+            zIndex: 10,
+          }}
+        >
+          <span style={{ color: 'var(--color-primary)' }}>✨</span>
+          2x HD Upscaled
+        </div>
+      )}
+
       <ZoomControls
         zoomPercent={zoomPercent}
         onZoomIn={zoomIn}

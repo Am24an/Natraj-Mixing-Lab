@@ -90,6 +90,42 @@ export function Workspace() {
           deleteProject={deleteProject}
         />
       )}
+
+      {/* Credit Footer */}
+      <div 
+        style={{
+          position: 'absolute',
+          bottom: '12px',
+          left: 'calc(var(--sidebar-width) + 16px)',
+          zIndex: 50,
+          background: 'var(--color-surface)',
+          padding: '6px 12px',
+          borderRadius: 'var(--radius-full)',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+          border: '1px solid var(--color-border)',
+          fontSize: '11px',
+          color: 'var(--color-text-muted)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+        }}
+      >
+        <span>Crafted with ⚡ by</span>
+        <a 
+          href="https://github.com/Am24an" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          style={{
+            fontWeight: 600,
+            color: 'var(--color-text-primary)',
+            textDecoration: 'none',
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
+          onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
+        >
+          Aman Kumar
+        </a>
+      </div>
     </div>
   );
 }
