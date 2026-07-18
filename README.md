@@ -11,6 +11,10 @@
   </div>
 </div>
 
+<div align="center">
+  <img src="Screenshot.png" alt="Natraj Mixing Lab Screenshot" width="800" style="border-radius: 12px; box-shadow: 0 4px 14px rgba(0,0,0,0.1);" />
+</div>
+
 ---
 
 ## 🌟 Overview
@@ -25,8 +29,9 @@ Unlike traditional photo editors, **everything runs 100% locally in your browser
 - ✂️ **AI Background Removal**: Automatically separates the subject from the background using the highly accurate `@imgly/background-removal` WASM model.
 - 🎨 **Passport Color Presets**: Instantly apply standard background colors (White, Light Blue, Cream, Grey) with a custom hex picker.
 - 🖼️ **AI Image Upscaling (Super Resolution)**: Uses TensorFlow.js (`upscaler`) to enhance and double the resolution of low-quality photos without losing detail.
-- 📐 **Smart Cropping**: Pre-configured aspect ratios for standard photo sizes (e.g., 35x45mm Passport, 2x2 US Passport, Square).
+- 📐 **Smart Cropping & Transforms**: Pre-configured aspect ratios (e.g., 35x45mm Passport, 2x2 US Passport, Square) with flawless rotation and flipping capabilities.
 - 🎛️ **Advanced Pixel Enhancements**: Granular control over Brightness, Contrast, Saturation, Sharpness, Highlights, and Shadows.
+- 📱 **Fully Mobile Responsive**: Features a specialized, stacked scrollable layout that perfectly adapts to phones and tablets without overlapping UI.
 - ↩️ **Time-Travel Undo/Redo**: Full state history management powered by `zustand` and `zundo`.
 - 💾 **Local Workspace Saving**: Saves your working projects to IndexedDB so you can resume editing after closing the browser.
 
@@ -95,6 +100,7 @@ The optimized static files will be generated in the `dist` directory. Since this
 
 ```text
 src/
+├── app/          # Core app providers (ThemeProvider, ErrorBoundary)
 ├── components/   # Reusable UI components (Buttons, Sliders, Modals)
 ├── core/         # Heavy-lifting core logic (CanvasRenderer, ImageProcessor)
 ├── features/     # Feature-based domains (Workspace, TopNavigation, Panels)
