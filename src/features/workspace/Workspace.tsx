@@ -55,7 +55,7 @@ export function Workspace() {
       }}
     >
       {/* Top Navigation — spans full width */}
-      <div className="mobile-nav" style={{ gridColumn: '1 / -1', gridRow: '1' }}>
+      <div className="mobile-nav">
         <TopNavigation
           projectName={project?.name}
           projectStatus={project?.status}
@@ -67,17 +67,17 @@ export function Workspace() {
       </div>
 
       {/* Left Toolbar */}
-      <div className="mobile-toolbar" style={{ gridColumn: '1', gridRow: '2', overflow: 'hidden' }}>
+      <div className="mobile-toolbar">
         <LeftToolbar hasProject={!!project} />
       </div>
 
       {/* Central Editing Canvas */}
-      <div className="mobile-canvas" style={{ gridColumn: '2', gridRow: '2', overflow: 'hidden' }}>
+      <div className="mobile-canvas">
         <EditingCanvas project={project} activeTool={activeTool} />
       </div>
 
       {/* Right Context Panel */}
-      <div className="mobile-panel" style={{ gridColumn: '3', gridRow: '2', overflow: 'hidden' }}>
+      <div className={`mobile-panel ${!activeTool ? 'hidden md:block' : ''}`}>
         <RightPanel activeTool={activeTool} hasProject={!!project} />
       </div>
 
@@ -93,6 +93,7 @@ export function Workspace() {
 
       {/* Credit Footer */}
       <div 
+        className="hidden md:flex"
         style={{
           position: 'absolute',
           bottom: '12px',
@@ -105,7 +106,6 @@ export function Workspace() {
           border: '1px solid var(--color-border)',
           fontSize: '11px',
           color: 'var(--color-text-muted)',
-          display: 'flex',
           alignItems: 'center',
           gap: '6px',
         }}

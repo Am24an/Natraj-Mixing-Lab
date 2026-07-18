@@ -124,7 +124,7 @@ export function TopNavigation({
 
       {/* Right — Actions */}
       <nav
-        className="flex items-center gap-2 shrink-0"
+        className="flex items-center gap-1 md:gap-2 shrink-0 overflow-x-auto pr-2"
         aria-label="Application actions"
       >
         <Button
@@ -184,7 +184,15 @@ export function TopNavigation({
               }}
             />
           )}
+          <span className="hidden md:inline">Save</span>
         </Button>
+
+        {/* Divider */}
+        <div
+          aria-hidden="true"
+          className="hidden md:block"
+          style={{ width: '1px', height: '20px', background: 'var(--color-border)', flexShrink: 0 }}
+        />
 
         <Button
           variant="ghost"
@@ -193,6 +201,7 @@ export function TopNavigation({
           onClick={onOpenProjects}
           aria-label="Recent projects"
           id="nav-recent-projects"
+          className="hidden md:flex"
         >
           Projects
         </Button>
@@ -204,6 +213,7 @@ export function TopNavigation({
           aria-label="Settings"
           id="nav-settings"
           title="Settings"
+          className="hidden md:flex"
         >
           <Settings size={16} strokeWidth={2} />
         </Button>
@@ -212,13 +222,13 @@ export function TopNavigation({
           variant="primary"
           size="md"
           leftIcon={<Download size={15} strokeWidth={2} />}
-          style={{ paddingLeft: '24px', paddingRight: '24px', flexShrink: 0 }}
+          style={{ paddingLeft: '16px', paddingRight: '16px', flexShrink: 0 }}
           onClick={onExport}
           disabled={!hasProject}
           aria-label="Export image"
           id="nav-export"
         >
-          Export
+          <span className="hidden sm:inline">Export</span>
         </Button>
       </nav>
     </header>

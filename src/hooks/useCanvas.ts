@@ -80,6 +80,7 @@ export function useCanvas() {
       console.error('[useCanvas] Failed to load image for canvas rendering');
     };
     img.src = project.originalImage.dataUrl;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project?.originalImage?.dataUrl]);
 
   // ---------- 4. Reset viewport whenever a new project is opened ----------

@@ -206,6 +206,13 @@ export class CanvasRenderer {
     this.ctx.save();
     this.ctx.translate(drawX + drawW / 2, drawY + drawH / 2);
 
+    if (crop.rotation !== 0) {
+      this.ctx.rotate((crop.rotation * Math.PI) / 180);
+    }
+    if (crop.flipHorizontal || crop.flipVertical) {
+      this.ctx.scale(crop.flipHorizontal ? -1 : 1, crop.flipVertical ? -1 : 1);
+    }
+
     const actualImgW = (imageToDraw as HTMLImageElement).naturalWidth || (imageToDraw as OffscreenCanvas).width || imgW;
     const actualImgH = (imageToDraw as HTMLImageElement).naturalHeight || (imageToDraw as OffscreenCanvas).height || imgH;
     

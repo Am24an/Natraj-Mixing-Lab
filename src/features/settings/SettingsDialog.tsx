@@ -60,7 +60,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
                 fontSize: 'var(--font-size-sm)',
               }}
               value={preferences.theme}
-              onChange={(e) => updatePreferences({ theme: e.target.value as any })}
+              onChange={(e) => updatePreferences({ theme: e.target.value as 'light' | 'dark' | 'system' })}
             >
               <option value="light">Light</option>
               <option value="dark">Dark</option>

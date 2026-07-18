@@ -30,9 +30,9 @@ export function CropTransformPanel() {
     return () => updateCrop({ isActive: false });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!cropState) return null;
-
   const dimensions = useEditorStore((s) => s.project?.originalImage?.dimensions);
+
+  if (!cropState) return null;
 
   const handlePresetSelect = (preset: CropPreset, aspect?: number) => {
     if (aspect && dimensions) {
@@ -62,7 +62,7 @@ export function CropTransformPanel() {
 
       updateCrop({ preset, aspect, x, y, width: cropPctW, height: cropPctH });
     } else {
-      updateCrop({ preset, aspect, x: 10, y: 10, width: 80, height: 80 });
+      updateCrop({ preset, aspect, x: 0, y: 0, width: 100, height: 100 });
     }
   };
 

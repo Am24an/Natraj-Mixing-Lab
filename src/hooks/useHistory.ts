@@ -7,7 +7,7 @@ import { useCallback } from 'react';
  */
 export function useHistory() {
   const temporalStore = useHistoryStore();
-  const { undo, redo, pastStates, futureStates } = useStore(temporalStore, (state: any) => state);
+  const { undo, redo, pastStates, futureStates } = useStore(temporalStore, (state) => state);
 
   return {
     canUndo: pastStates.length > 0,

@@ -47,20 +47,7 @@ export function LeftToolbar({ hasProject }: LeftToolbarProps) {
   return (
     <aside
       aria-label="Editing tools"
-      className="mobile-toolbar-inner"
-      style={{
-        width: 'var(--sidebar-width)',
-        height: '100%',
-        background: 'var(--color-surface)',
-        borderRight: '1px solid var(--color-border)',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        padding: 'var(--space-sm) 0',
-        gap: 'var(--space-xs)',
-        overflowY: 'auto',
-        overflowX: 'hidden',
-      }}
+      className="mobile-toolbar-inner flex flex-col md:w-[var(--sidebar-width)] h-full bg-[var(--color-surface)] border-r border-[var(--color-border)] items-center py-2 gap-1 overflow-y-auto overflow-x-hidden"
     >
       {TOOLS.map((tool) => {
         const isDisabled = tool.requiresProject && !hasProject;
@@ -81,14 +68,7 @@ export function LeftToolbar({ hasProject }: LeftToolbarProps) {
       <div style={{ flex: 1 }} />
 
       {/* Reset Button */}
-      <div
-        style={{
-          width: '100%',
-          padding: '0 var(--space-xs)',
-          borderTop: '1px solid var(--color-border)',
-          paddingTop: 'var(--space-sm)',
-        }}
-      >
+      <div className="w-full px-1 border-t border-[var(--color-border)] pt-2 md:mt-auto">
         <Button
           variant="ghost"
           size="icon"
@@ -96,8 +76,7 @@ export function LeftToolbar({ hasProject }: LeftToolbarProps) {
           disabled={!hasProject}
           title="Reset all edits"
           aria-label="Reset all edits"
-          className={cn('w-full flex-col gap-1')}
-          style={{ height: '56px', borderRadius: 'var(--radius-sm)' }}
+          className={cn('w-full flex-col gap-1 h-[56px] rounded-sm')}
         >
           <RotateCcw size={18} strokeWidth={1.75} />
           <span style={{ fontSize: '10px' }}>Reset</span>

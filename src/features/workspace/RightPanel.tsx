@@ -39,16 +39,7 @@ export function RightPanel({ activeTool, hasProject }: RightPanelProps) {
   return (
     <aside
       aria-label="Tool options"
-      className="mobile-panel-inner"
-      style={{
-        width: 'var(--panel-width)',
-        height: '100%',
-        background: 'var(--color-surface)',
-        borderLeft: '1px solid var(--color-border)',
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-      }}
+      className="mobile-panel-inner flex flex-col md:w-[var(--panel-width)] h-full bg-[var(--color-surface)] border-l border-[var(--color-border)] overflow-hidden"
     >
       {/* Panel Header */}
       <div

@@ -84,8 +84,8 @@ export function BackgroundRemovalPanel() {
         )}
       </div>
 
-      {/* Tech details */}
-      <div className="space-y-2">
+      {/* Tech details (Hidden on mobile to save space) */}
+      <div className="hidden md:block space-y-2">
         {[
           { label: 'Model', value: 'U2Net' },
           { label: 'Processing', value: 'On-device via WebAssembly' },
@@ -98,8 +98,8 @@ export function BackgroundRemovalPanel() {
         ))}
       </div>
 
-      {/* Privacy note */}
-      <div className="mt-auto flex items-start gap-2 text-[var(--color-text-muted)]">
+      {/* Privacy note (Hidden on mobile) */}
+      <div className="hidden md:flex mt-auto items-start gap-2 text-[var(--color-text-muted)]">
         <Lock size={14} className="mt-0.5 shrink-0" />
         <p className="text-[11px] leading-relaxed">
           Image processing happens in your browser. Your photos are never uploaded to any server.

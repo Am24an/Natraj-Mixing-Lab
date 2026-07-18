@@ -60,8 +60,9 @@ export function ExportDialog({ onClose }: ExportDialogProps) {
 
       // 3. Create single photo canvas
       const canvas = document.createElement('canvas');
-      canvas.width = Math.round(cw);
-      canvas.height = Math.round(ch);
+      const isRotated = crop.rotation % 180 !== 0;
+      canvas.width = Math.round(isRotated ? ch : cw);
+      canvas.height = Math.round(isRotated ? cw : ch);
       const ctx = canvas.getContext('2d')!;
 
       // Background color
@@ -105,8 +106,8 @@ export function ExportDialog({ onClose }: ExportDialogProps) {
         // Recalculate crop bounds specifically for the mask image's dimensions
         const maskCx = (crop.width === 0 ? 0 : crop.x / 100) * resultImg.naturalWidth;
         const maskCy = (crop.height === 0 ? 0 : crop.y / 100) * resultImg.naturalHeight;
-        const maskCw = (crop.width === 0 ? 100 : crop.width / 100) * resultImg.naturalWidth;
-        const maskCh = (crop.height === 0 ? 100 : crop.height / 100) * resultImg.naturalHeight;
+        const maskCw = (crop.width === 0 ? 1 : crop.width / 100) * resultImg.naturalWidth;
+        const maskCh = (crop.height === 0 ? 1 : crop.height / 100) * resultImg.naturalHeight;
 
         // Apply CSS filters and transform again
         if (filters.length > 0) ctx.filter = filters.join(' ');
