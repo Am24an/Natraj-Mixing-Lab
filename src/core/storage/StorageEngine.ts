@@ -150,7 +150,7 @@ export class StorageEngine {
       db,
       STORES.PREFERENCES,
       'readonly',
-      (store) => store.get(key) as unknown as IDBRequest<{ key: string; value: T } | undefined>
+      (store) => store.get(key) as IDBRequest<{ key: string; value: T } | undefined>
     );
     return result?.value ?? null;
   }

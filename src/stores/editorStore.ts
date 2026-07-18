@@ -1,6 +1,6 @@
-import { create } from 'zustand';
+import { create, type StoreApi } from 'zustand';
 import { devtools } from 'zustand/middleware';
-import { temporal } from 'zundo';
+import { temporal, type TemporalState } from 'zundo';
 import { generateId } from '@/utils/image';
 import {
   type Project,
@@ -36,10 +36,10 @@ function createDefaultBackgroundState(): BackgroundState {
 function createDefaultCropState(): CropState {
   return {
     isActive: false,
-    x: 10,
-    y: 10,
-    width: 80,
-    height: 80,
+    x: 0,
+    y: 0,
+    width: 100,
+    height: 100,
     rotation: 0,
     zoom: 1,
     aspect: undefined,
@@ -441,7 +441,8 @@ export const useEditorStore = create<EditorStore>()(
   )
 );
 
-export const useHistoryStore = () => (useEditorStore as any).temporal;
+export const useHistoryStore = () => 
+  (useEditorStore as unknown as { temporal: StoreApi<TemporalState<{ project: Project | null }>> }).temporal;
 
 // Selector hooks for optimized subscriptions
 export const useProject = () => useEditorStore((s) => s.project);
