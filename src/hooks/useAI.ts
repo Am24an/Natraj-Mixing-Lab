@@ -1,6 +1,6 @@
 // =============================================================================
 // useAI Hook — Background removal using @imgly/background-removal
-// Uses CDN-hosted AI models (internet required for first load, then browser-cached)
+// Uses a persistent Web Worker to prevent UI blocking and cache the model.
 // =============================================================================
 
 import { useCallback, useState } from 'react';
@@ -8,6 +8,15 @@ import { useEditorStore } from '@/stores/editorStore';
 import { useToast } from '@/hooks/useToast';
 
 export type AIEngineStatus = 'idle' | 'ready' | 'processing' | 'error';
+
+// Singleton worker instance to keep models cached in memory
+let bgWorker: Worker | null = null;
+let jobIdCounter = 0;
+
+type WorkerResponseData = 
+  | { id: number; type: 'PROGRESS'; payload: { current: number; total: number } }
+  | { id: number; type: 'SUCCESS'; payload: { resultBlob: Blob } }
+  | { id: number; type: 'ERROR'; payload: { error: string } };
 
 export function useAI() {
   const toast = useToast();
@@ -34,8 +43,13 @@ export function useAI() {
       setEngineStatus('processing');
       setBackgroundProcessing(true, 10);
 
-      // Dynamically import — lazy loads, no bundle cost until first click
-      const { removeBackground: removeBg } = await import('@imgly/background-removal');
+      // Initialize the worker once
+      if (!bgWorker) {
+        bgWorker = new Worker(new URL('../workers/bgRemovalWorker.ts', import.meta.url), {
+          type: 'module',
+        });
+      }
+
       setBackgroundProcessing(true, 20);
 
       // Use the original File object if available (faster — no re-encoding),
@@ -48,17 +62,49 @@ export function useAI() {
       setBackgroundProcessing(true, 30);
       let maxProgress = 30;
 
-      // removeBg returns a transparent PNG Blob — models fetched from CDN and cached
-      const resultBlob = await removeBg(inputBlob, {
-        progress: (_key: string, current: number, total: number) => {
-          if (total > 0) {
-            const rawPct = Math.round(30 + (current / total) * 60);
-            if (rawPct > maxProgress) {
-              maxProgress = rawPct;
-              setBackgroundProcessing(true, maxProgress);
+      const jobId = ++jobIdCounter;
+
+      const resultBlob = await new Promise<Blob>((resolve, reject) => {
+        const handleError = (error: ErrorEvent) => {
+          bgWorker?.removeEventListener('message', handleMessage);
+          bgWorker?.removeEventListener('error', handleError);
+          reject(new Error(error.message || 'Worker failed'));
+        };
+
+        const handleMessage = (event: MessageEvent<WorkerResponseData>) => {
+          const data = event.data;
+          
+          if (data.id !== jobId) return; // Ignore messages from other jobs
+          
+          if (data.type === 'PROGRESS') {
+            const { current, total } = data.payload;
+            if (total > 0) {
+              const rawPct = Math.round(30 + (current / total) * 60);
+              if (rawPct > maxProgress) {
+                maxProgress = rawPct;
+                setBackgroundProcessing(true, maxProgress);
+              }
             }
+          } else if (data.type === 'SUCCESS') {
+            bgWorker?.removeEventListener('message', handleMessage);
+            bgWorker?.removeEventListener('error', handleError);
+            resolve(data.payload.resultBlob);
+          } else if (data.type === 'ERROR') {
+            bgWorker?.removeEventListener('message', handleMessage);
+            bgWorker?.removeEventListener('error', handleError);
+            reject(new Error(data.payload.error));
           }
-        },
+        };
+
+        bgWorker!.addEventListener('message', handleMessage);
+        bgWorker!.addEventListener('error', handleError);
+        
+        // Post the blob to the worker
+        bgWorker!.postMessage({
+          id: jobId,
+          type: 'REMOVE_BACKGROUND',
+          payload: { imageBlob: inputBlob }
+        });
       });
 
       setBackgroundProcessing(true, 95);
