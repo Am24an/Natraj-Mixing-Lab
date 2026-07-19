@@ -9,6 +9,7 @@ import {
   Sliders,
   RotateCcw,
   Sparkles,
+  Plus,
 } from 'lucide-react';
 
 interface ToolItem {
@@ -36,6 +37,7 @@ export function LeftToolbar({ hasProject }: LeftToolbarProps) {
   const resetBackground = useEditorStore((s) => s.resetBackground);
   const resetCrop = useEditorStore((s) => s.resetCrop);
   const resetEnhancement = useEditorStore((s) => s.resetEnhancement);
+  const closeProject = useEditorStore((s) => s.closeProject);
 
   const handleReset = () => {
     if (!hasProject) return;
@@ -67,8 +69,24 @@ export function LeftToolbar({ hasProject }: LeftToolbarProps) {
       {/* Spacer */}
       <div style={{ flex: 1 }} />
 
-      {/* Reset Button */}
+      {/* New Photo Button */}
       <div className="w-full px-1 border-t border-[var(--color-border)] pt-2 md:mt-auto">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={closeProject}
+          disabled={!hasProject}
+          title="Upload new photo"
+          aria-label="New Photo"
+          className={cn('w-full flex-col gap-1 h-[56px] rounded-sm text-[var(--color-primary)]')}
+        >
+          <Plus size={18} strokeWidth={2} />
+          <span style={{ fontSize: '10px', fontWeight: 500 }}>New</span>
+        </Button>
+      </div>
+
+      {/* Reset Button */}
+      <div className="w-full px-1 border-t border-[var(--color-border)] pt-2 mt-2">
         <Button
           variant="ghost"
           size="icon"
