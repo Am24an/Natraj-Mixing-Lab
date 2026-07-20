@@ -1,7 +1,5 @@
-// =============================================================================
 // useViewport Hook — Zoom & Pan state + event bindings
 // useViewport Hook — Interactive canvas pan/zoom logic
-// =============================================================================
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { viewportController, type ViewportState } from '@/core/rendering/ViewportController';
@@ -15,7 +13,6 @@ export function useViewport() {
   const isPanning = useRef(false);
   const lastPan = useRef({ x: 0, y: 0 });
 
-  // ---------- Subscribe to viewport changes ----------
   useEffect(() => {
     const unsubscribe = viewportController.subscribe(setViewport);
     return unsubscribe;
@@ -30,7 +27,6 @@ export function useViewport() {
     return () => { window.removeEventListener('keydown', onKeyDown); window.removeEventListener('keyup', onKeyUp); };
   }, []);
 
-  // ---------- Zoom with mouse wheel ----------
   const handleWheel = useCallback((e: WheelEvent) => {
     e.preventDefault();
 
@@ -45,7 +41,6 @@ export function useViewport() {
     viewportController.zoom_by(delta, focalX, focalY);
   }, []);
 
-  // ---------- Pan with mouse drag ----------
   // Enable panning with left click drag to move the photo
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     // Allow standard left-click or middle-click panning
@@ -68,7 +63,6 @@ export function useViewport() {
     isPanning.current = false;
   }, []);
 
-  // ---------- Keyboard shortcuts ----------
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === '0' && (e.ctrlKey || e.metaKey)) {
@@ -97,7 +91,6 @@ export function useViewport() {
     return () => window.removeEventListener('keydown', handler);
   }, []);
 
-  // ---------- Actions ----------
   const zoomIn = useCallback(() => viewportController.zoom_by(0.1), []);
   const zoomOut = useCallback(() => viewportController.zoom_by(-0.1), []);
   const fitToView = useCallback(() => viewportController.fitToView(), []);

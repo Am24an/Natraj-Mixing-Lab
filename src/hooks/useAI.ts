@@ -1,7 +1,6 @@
-// =============================================================================
+
 // useAI Hook — Background removal using @imgly/background-removal
 // Uses a persistent Web Worker to prevent UI blocking and cache the model.
-// =============================================================================
 
 import { useCallback, useState } from 'react';
 import { useEditorStore } from '@/stores/editorStore';
@@ -26,7 +25,7 @@ export function useAI() {
   const setBackgroundRemoved = useEditorStore((s) => s.setBackgroundRemoved);
   const setBackgroundError = useEditorStore((s) => s.setBackgroundError);
 
-  const removeBackground = useCallback(async () => {
+  const removeBackground = useCallback(async (modelVariant?: 'auto' | 'isnet_quint8' | 'isnet') => {
     const currentProject = useEditorStore.getState().project;
 
     if (!currentProject?.originalImage) {
@@ -103,7 +102,7 @@ export function useAI() {
         bgWorker!.postMessage({
           id: jobId,
           type: 'REMOVE_BACKGROUND',
-          payload: { imageBlob: inputBlob }
+          payload: { imageBlob: inputBlob, modelVariant }
         });
       });
 

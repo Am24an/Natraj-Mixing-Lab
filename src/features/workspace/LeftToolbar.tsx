@@ -10,6 +10,7 @@ import {
   RotateCcw,
   Sparkles,
   Plus,
+  Paintbrush,
 } from 'lucide-react';
 
 interface ToolItem {
@@ -22,6 +23,7 @@ interface ToolItem {
 const TOOLS: ToolItem[] = [
   { id: 'crop', label: 'Crop', icon: <Crop size={20} strokeWidth={1.75} />, requiresProject: true },
   { id: 'background-removal', label: 'Remove BG', icon: <Eraser size={20} strokeWidth={1.75} />, requiresProject: true },
+  { id: 'eraser', label: 'Mask Brush', icon: <Paintbrush size={20} strokeWidth={1.75} />, requiresProject: true },
   { id: 'background-color', label: 'BG Color', icon: <Palette size={20} strokeWidth={1.75} />, requiresProject: true },
   { id: 'enhancement', label: 'Enhance', icon: <Sliders size={20} strokeWidth={1.75} />, requiresProject: true },
   { id: 'upscale', label: 'Upscale', icon: <Sparkles size={20} strokeWidth={1.75} />, requiresProject: true },
@@ -104,9 +106,7 @@ export function LeftToolbar({ hasProject }: LeftToolbarProps) {
   );
 }
 
-// --------------------------------------------------------------------------
 // Tool Button
-// --------------------------------------------------------------------------
 
 interface ToolButtonProps {
   tool: ToolItem;

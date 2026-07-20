@@ -2,9 +2,7 @@ import { forwardRef } from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/utils/cn';
 
-// --------------------------------------------------------------------------
 // Button Variants (CVA)
-// --------------------------------------------------------------------------
 
 const buttonVariants = cva(
   // Base styles — match design system exactly
@@ -66,9 +64,7 @@ const buttonVariants = cva(
   }
 );
 
-// --------------------------------------------------------------------------
 // Button Component
-// --------------------------------------------------------------------------
 
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,

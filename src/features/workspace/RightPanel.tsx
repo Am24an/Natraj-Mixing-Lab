@@ -4,6 +4,7 @@ import { BackgroundColorPanel } from './panels/BackgroundColorPanel';
 import { CropTransformPanel } from './panels/CropTransformPanel';
 import { EnhancementPanel } from './panels/EnhancementPanel';
 import { UpscalePanel } from './panels/UpscalePanel';
+import { EraserPanel } from './panels/EraserPanel'; 
 
 interface RightPanelProps {
   activeTool: ActiveTool;
@@ -31,6 +32,8 @@ export function RightPanel({ activeTool, hasProject }: RightPanelProps) {
         return <EnhancementPanel />;
       case 'upscale':
         return <UpscalePanel />;
+      case 'eraser':
+        return <EraserPanel />;
       default:
         return <NoToolSelectedState />;
     }
@@ -77,9 +80,7 @@ export function RightPanel({ activeTool, hasProject }: RightPanelProps) {
   );
 }
 
-// --------------------------------------------------------------------------
 // Helpers
-// --------------------------------------------------------------------------
 
 function getPanelTitle(tool: ActiveTool): string {
   const TOOL_TITLES: Record<Exclude<ActiveTool, null>, string> = {
@@ -89,6 +90,7 @@ function getPanelTitle(tool: ActiveTool): string {
     enhancement: 'Enhancements',
     comparison: 'Compare',
     upscale: 'AI Upscaler',
+    eraser: 'Magic Eraser',
   };
   return tool ? TOOL_TITLES[tool] : 'Options';
 }

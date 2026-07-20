@@ -1,7 +1,5 @@
-// =============================================================================
 // useCanvas Hook — Manages CanvasRenderer lifecycle
 // Core Editor Engine Hook
-// =============================================================================
 
 import { useEffect, useRef } from 'react';
 import { CanvasRenderer } from '@/core/rendering/CanvasRenderer';
@@ -26,7 +24,6 @@ export function useCanvas() {
   const projectId = useEditorStore((s) => s.project?.id);
   const maskDataUrl = useEditorStore((s) => s.project?.editingState.background.maskDataUrl);
 
-  // ---------- 1. Initialize renderer once on mount ----------
   useEffect(() => {
     const canvas = canvasRef.current;
     const container = containerRef.current;
@@ -47,7 +44,6 @@ export function useCanvas() {
     };
   }, []); // runs exactly once
 
-  // ---------- 2. ResizeObserver — watches the same containerRef ----------
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -65,7 +61,6 @@ export function useCanvas() {
     return () => observer.disconnect();
   }, []); // also runs once; rendererRef is always current via .current
 
-  // ---------- 3. Load source image when project/image changes ----------
   useEffect(() => {
     const renderer = rendererRef.current;
     if (!renderer) return;
@@ -83,19 +78,24 @@ export function useCanvas() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project?.originalImage?.dataUrl]);
 
-  // ---------- 4. Reset viewport whenever a new project is opened ----------
   useEffect(() => {
     if (projectId) {
       viewportController.fitToView();
     }
   }, [projectId]);
 
-  // ---------- 5. Load result image into renderer when BG removal completes ----------
   useEffect(() => {
     const renderer = rendererRef.current;
     if (!renderer) return;
     if (maskDataUrl) {
-      void renderer.setMaskImage(maskDataUrl);
+      void renderer.setMaskImage(maskDataUrl).then(() => {
+        // Force a definitive re-render once the mask is fully decoded to fix flicker bug
+        const currentProject = useEditorStore.getState().project;
+        if (currentProject?.editingState) {
+          const { zoom, panX, panY } = viewportController.getState();
+          renderer.render(currentProject.editingState, { zoom, panX, panY });
+        }
+      });
     } else {
       renderer.clearMask();
     }

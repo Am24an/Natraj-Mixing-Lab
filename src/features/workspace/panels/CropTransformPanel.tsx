@@ -1,8 +1,6 @@
-// =============================================================================
 // CropTransformPanel — Interactive Crop using react-image-crop
 // The crop box is rendered as an overlay OVER the canvas inside EditingCanvas.
 // This panel shows aspect ratio presets, rotation and flip controls only.
-// =============================================================================
 
 import { useEditorStore } from '@/stores/editorStore';
 import type { CropPreset } from '@/types';
@@ -70,7 +68,7 @@ export function CropTransformPanel() {
     <div className="flex flex-col h-full space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-[18px] font-semibold text-[var(--color-text)] mb-1">Crop & Transform</h2>
+        <h2 className="text-[18px] font-semibold text-[var(--color-text-primary)] mb-1">Crop & Transform</h2>
         <p className="text-[14px] text-[var(--color-text-muted)]">
           Drag the handles on the image to crop.
         </p>
@@ -92,7 +90,7 @@ export function CropTransformPanel() {
                   'py-2 px-3 rounded border text-[13px] text-left transition-colors flex flex-col items-start relative',
                   isActive
                     ? 'bg-[var(--color-primary)]/10 border-[var(--color-primary)]/50 text-[var(--color-primary)]'
-                    : 'bg-[var(--color-surface-hover)] border-[var(--color-border)] text-[var(--color-text)] hover:border-[var(--color-primary)]/40'
+                    : 'bg-[var(--color-surface-secondary)] border-[var(--color-border)] text-[var(--color-text-primary)] hover:border-[var(--color-primary)]/40'
                 )}
               >
                 <span className="font-semibold mb-0.5">{p.label}</span>
@@ -114,7 +112,7 @@ export function CropTransformPanel() {
         <div className="flex items-center gap-3 mb-3">
           <RotateCcw
             size={16}
-            className="text-[var(--color-text-muted)] cursor-pointer hover:text-[var(--color-text)]"
+            className="text-[var(--color-text-muted)] cursor-pointer hover:text-[var(--color-text-primary)]"
             onClick={() => updateCrop({ rotation: Math.max(-180, cropState.rotation - 1) })}
           />
           <div className="flex-1">
@@ -128,7 +126,7 @@ export function CropTransformPanel() {
           </div>
           <RotateCw
             size={16}
-            className="text-[var(--color-text-muted)] cursor-pointer hover:text-[var(--color-text)]"
+            className="text-[var(--color-text-muted)] cursor-pointer hover:text-[var(--color-text-primary)]"
             onClick={() => updateCrop({ rotation: Math.min(180, cropState.rotation + 1) })}
           />
         </div>
@@ -153,7 +151,7 @@ export function CropTransformPanel() {
               key={btn.title}
               title={btn.title}
               onClick={btn.onClick}
-              className="flex flex-col items-center gap-1 py-2 rounded border border-[var(--color-border)] bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-hover)]/80 transition-colors text-[var(--color-text)]"
+              className="flex flex-col items-center gap-1 py-2 rounded border border-[var(--color-border)] bg-[var(--color-surface-secondary)] hover:bg-[var(--color-surface-secondary)]/80 transition-colors text-[var(--color-text-primary)]"
             >
               {btn.icon}
               <span className="text-[10px] text-[var(--color-text-muted)]">{btn.title}</span>

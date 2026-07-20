@@ -1,7 +1,5 @@
-// =============================================================================
 // ImageProcessor — Pixel-level processing for advanced enhancements
 // Handles Sharpness (Convolution) and Highlights/Shadows (Tone Mapping)
-// =============================================================================
 
 export interface PixelEnhancements {
   sharpness: number; // 0 to 100

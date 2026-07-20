@@ -1,15 +1,11 @@
-// =============================================================================
 // Canvas Renderer — Core Rendering Engine
 // Core Editor Engine
-// =============================================================================
 
 import type { EditingState } from '@/types';
 import { ImageProcessor } from '../processing/ImageProcessor';
 import { getCanvasContext } from '@/utils/image';
 
-// --------------------------------------------------------------------------
 // Renderer Config
-// --------------------------------------------------------------------------
 
 export interface RendererConfig {
   canvas: HTMLCanvasElement;
@@ -27,16 +23,14 @@ export interface RenderOptions {
   panY?: number;
 }
 
-// --------------------------------------------------------------------------
 // Canvas Renderer Class
-// --------------------------------------------------------------------------
 
 export class CanvasRenderer {
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
   private dpr: number;
   private sourceImage: HTMLImageElement | null = null;
-  private maskImage: HTMLImageElement | null = null;
+  private maskImage: OffscreenCanvas | HTMLImageElement | null = null;
   
   // Cache for pixel-processed image (sharpness, highlights, shadows)
   private processedCache: OffscreenCanvas | null = null;
@@ -52,9 +46,7 @@ export class CanvasRenderer {
     this.resize(config.width, config.height);
   }
 
-  // --------------------------------------------------------------------------
   // Setup
-  // --------------------------------------------------------------------------
 
   resize(width: number, height: number): void {
     const dpr = this.dpr;
@@ -80,8 +72,26 @@ export class CanvasRenderer {
   setMaskImage(maskDataUrl: string): Promise<void> {
     return new Promise((resolve, reject) => {
       const img = new Image();
-      img.onload = () => {
-        this.maskImage = img;
+      img.onload = async () => {
+        try {
+          // Await full decode to prevent silent drawImage failures (flicker)
+          if ('decode' in img) {
+            await img.decode();
+          }
+        } catch {
+          // ignore decode errors and fallback to immediate render
+        }
+        
+        // Convert to OffscreenCanvas to allow manual brush edits
+        const canvas = new OffscreenCanvas(img.naturalWidth, img.naturalHeight);
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        if (ctx) {
+          ctx.drawImage(img, 0, 0);
+          this.maskImage = canvas;
+        } else {
+          this.maskImage = img; // Fallback
+        }
+        
         this.markDirty();
         if (this.lastEditingState && this.lastOptions) {
           this.render(this.lastEditingState, this.lastOptions);
@@ -98,9 +108,53 @@ export class CanvasRenderer {
     this.markDirty();
   }
 
-  // --------------------------------------------------------------------------
+  
+  applyBrushStroke(imgX: number, imgY: number, radius: number, mode: 'erase' | 'restore'): void {
+    if (!this.maskImage || !this.sourceImage) return;
+    
+    // Only works if maskImage is an OffscreenCanvas
+    if (!(this.maskImage instanceof OffscreenCanvas)) return;
+    
+    const ctx = this.maskImage.getContext('2d');
+    if (!ctx) return;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(imgX, imgY, radius, 0, Math.PI * 2);
+    
+    if (mode === 'erase') {
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.fill();
+    } else if (mode === 'restore') {
+      ctx.clip();
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.drawImage(this.sourceImage, 0, 0);
+    }
+    
+    ctx.restore();
+    
+    // Invalidate enhancement cache since mask changed
+    this.processedCache = null;
+    this.lastEnhancementKey = '';
+    
+    this.markDirty();
+    if (this.lastEditingState && this.lastOptions) {
+      this.render(this.lastEditingState, this.lastOptions);
+    }
+  }
+
+  async getMaskDataUrl(): Promise<string> {
+    if (!this.maskImage || !(this.maskImage instanceof OffscreenCanvas)) return '';
+    const blob = await this.maskImage.convertToBlob({ type: 'image/png' });
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => reject(new Error('Failed to encode mask'));
+      reader.readAsDataURL(blob);
+    });
+  }
+
   // Rendering
-  // --------------------------------------------------------------------------
 
   markDirty(): void {
     // Reserved for future RAF-based dirty tracking
@@ -179,8 +233,8 @@ export class CanvasRenderer {
     // 2. Process pixels if needed (sharpness, highlights, shadows)
     if (enhancementKey !== 'none') {
       if (this.lastEnhancementKey !== enhancementKey || !this.processedCache) {
-        const w = imageToDraw.naturalWidth || this.sourceImage.naturalWidth;
-        const h = imageToDraw.naturalHeight || this.sourceImage.naturalHeight;
+        const w = (imageToDraw as HTMLImageElement).naturalWidth || (imageToDraw as OffscreenCanvas).width || this.sourceImage.naturalWidth;
+        const h = (imageToDraw as HTMLImageElement).naturalHeight || (imageToDraw as OffscreenCanvas).height || this.sourceImage.naturalHeight;
         this.processedCache = new OffscreenCanvas(w, h);
         const pCtx = this.processedCache.getContext('2d', { willReadFrequently: true })!;
         pCtx.drawImage(imageToDraw, 0, 0);
@@ -236,9 +290,7 @@ export class CanvasRenderer {
   }
 
 
-  // --------------------------------------------------------------------------
   // Checkerboard pattern for transparent backgrounds
-  // --------------------------------------------------------------------------
 
   private drawCheckerboard(x: number, y: number, w: number, h: number): void {
     const size = 12;
@@ -259,9 +311,7 @@ export class CanvasRenderer {
   }
 
 
-  // --------------------------------------------------------------------------
   // Export
-  // --------------------------------------------------------------------------
 
   exportToBlob(format: 'jpeg' | 'png' | 'webp', quality = 0.95): Promise<Blob> {
     return new Promise((resolve, reject) => {
@@ -281,9 +331,50 @@ export class CanvasRenderer {
     return this.canvas.toDataURL(`image/${format}`, quality);
   }
 
-  // --------------------------------------------------------------------------
+  // Coordinate Mapping
+  
+  screenToImageCoords(mouseX: number, mouseY: number, editingState: EditingState, options: RenderOptions = {}): { x: number, y: number } | null {
+    if (!this.sourceImage) return null;
+
+    const { zoom = 1, panX = 0, panY = 0 } = options;
+    const cssWidth = this.canvas.width / this.dpr;
+    const cssHeight = this.canvas.height / this.dpr;
+    const imgW = this.sourceImage.naturalWidth;
+    const imgH = this.sourceImage.naturalHeight;
+
+    const { crop } = editingState;
+    let srcX = 0, srcY = 0, srcW = imgW, srcH = imgH;
+    
+    if (!crop.isActive && crop.width > 0 && crop.height > 0 && (crop.width < 100 || crop.height < 100)) {
+      srcX = imgW * (crop.x / 100);
+      srcY = imgH * (crop.y / 100);
+      srcW = imgW * (crop.width / 100);
+      srcH = imgH * (crop.height / 100);
+    }
+
+    const scaleW = cssWidth / srcW;
+    const scaleH = cssHeight / srcH;
+    const fitScale = Math.min(scaleW, scaleH) * zoom;
+
+    const drawW = srcW * fitScale;
+    const drawH = srcH * fitScale;
+    const drawX = (cssWidth - drawW) / 2 + panX;
+    const drawY = (cssHeight - drawH) / 2 + panY;
+
+    if (mouseX < drawX || mouseX > drawX + drawW || mouseY < drawY || mouseY > drawY + drawH) {
+      return null;
+    }
+
+    const croppedX = (mouseX - drawX) / fitScale;
+    const croppedY = (mouseY - drawY) / fitScale;
+
+    return {
+      x: croppedX + srcX,
+      y: croppedY + srcY
+    };
+  }
+
   // Cleanup
-  // --------------------------------------------------------------------------
 
   destroy(): void {
     this.sourceImage = null;
@@ -292,9 +383,7 @@ export class CanvasRenderer {
   }
 }
 
-// --------------------------------------------------------------------------
 // Helper — Build CSS filter string from EnhancementState
-// --------------------------------------------------------------------------
 
 function buildCSSFilter(enhancement: EditingState['enhancement']): string {
   const filters: string[] = [];

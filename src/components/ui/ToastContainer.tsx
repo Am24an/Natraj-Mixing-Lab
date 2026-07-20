@@ -4,9 +4,7 @@ import { useEditorStore, useToasts } from '@/stores/editorStore';
 import type { ToastMessage, ToastVariant } from '@/types';
 import { cn } from '@/utils/cn';
 
-// --------------------------------------------------------------------------
 // Toast Icons
-// --------------------------------------------------------------------------
 
 const ICONS: Record<ToastVariant, React.ReactNode> = {
   success: <CheckCircle size={16} strokeWidth={2} />,
@@ -38,9 +36,7 @@ const COLORS: Record<ToastVariant, { bg: string; icon: string; border: string }>
   },
 };
 
-// --------------------------------------------------------------------------
 // Individual Toast Item
-// --------------------------------------------------------------------------
 
 interface ToastItemProps {
   toast: ToastMessage;
@@ -66,33 +62,47 @@ function ToastItem({ toast, onDismiss }: ToastItemProps) {
     <div
       role="status"
       aria-live="polite"
-      className={cn('animate-slide-up flex items-start gap-3 rounded-[var(--radius-lg)] p-4')}
+      className={cn('animate-slide-up flex items-center gap-3 p-3 pr-4')}
       style={{
         background: 'var(--color-surface)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
         border: `1px solid var(--color-border)`,
-        borderLeft: `4px solid ${colors.border}`,
-        boxShadow: 'var(--shadow-lg)',
-        minWidth: '280px',
+        borderRadius: '9999px',
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.24)',
+        minWidth: '240px',
         maxWidth: '400px',
       }}
     >
-      {/* Icon */}
-      <span style={{ color: colors.icon, flexShrink: 0, marginTop: '1px' }}>
+      {/* Icon Circle */}
+      <div 
+        style={{ 
+          background: colors.bg, 
+          color: colors.icon, 
+          flexShrink: 0,
+          width: '32px',
+          height: '32px',
+          borderRadius: '50%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
+      >
         {ICONS[toast.variant]}
-      </span>
+      </div>
 
       {/* Content */}
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 flex flex-col justify-center">
         <p
-          className="text-sm font-medium"
+          className="text-[13px] font-semibold"
           style={{ color: 'var(--color-text-primary)' }}
         >
           {toast.title}
         </p>
         {toast.description && (
           <p
-            className="text-xs mt-0.5"
-            style={{ color: 'var(--color-text-secondary)' }}
+            className="text-[11px] mt-0.5"
+            style={{ color: 'var(--color-text-secondary)', lineHeight: 1.2 }}
           >
             {toast.description}
           </p>
@@ -109,20 +119,30 @@ function ToastItem({ toast, onDismiss }: ToastItemProps) {
           border: 'none',
           cursor: 'pointer',
           color: 'var(--color-text-muted)',
-          padding: '0',
+          padding: '4px',
           flexShrink: 0,
-          transition: `color var(--duration-hover) var(--easing-out)`,
+          borderRadius: '50%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          transition: `all var(--duration-hover) var(--easing-out)`,
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.color = 'var(--color-text-primary)';
+          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.color = 'var(--color-text-muted)';
+          e.currentTarget.style.background = 'none';
         }}
       >
-        <X size={14} />
+        <X size={14} strokeWidth={2.5} />
       </button>
     </div>
   );
 }
 
-// --------------------------------------------------------------------------
 // Toast Container
-// --------------------------------------------------------------------------
 
 export function ToastContainer() {
   const toasts = useToasts();

@@ -72,7 +72,7 @@ export function BackgroundColorPanel() {
                 }
               }}
               maxLength={7}
-              className="flex-1 w-full h-12 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-4 font-mono text-[14px] text-[var(--color-text)] focus:border-[var(--color-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-light)] transition-all uppercase min-w-0"
+              className="flex-1 w-full h-12 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-4 font-mono text-[14px] text-[var(--color-text-primary)] focus:border-[var(--color-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-light)] transition-all uppercase min-w-0"
               placeholder="#FFFFFF"
             />
           </div>

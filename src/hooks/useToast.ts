@@ -1,7 +1,5 @@
-// =============================================================================
 // useToast Hook — convenience hook for adding toast notifications
 // Separated from ToastContainer.tsx per react-refresh/only-export-components rule
-// =============================================================================
 
 import { useEditorStore } from '@/stores/editorStore';
 
