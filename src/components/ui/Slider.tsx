@@ -1,9 +1,7 @@
 import { forwardRef } from 'react';
 import { cn } from '@/utils/cn';
 
-// --------------------------------------------------------------------------
 // Slider Component — wraps the native range input with design system styling
-// --------------------------------------------------------------------------
 
 export interface SliderProps {
   id?: string;

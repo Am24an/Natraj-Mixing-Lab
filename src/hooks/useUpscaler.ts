@@ -1,13 +1,24 @@
-// =============================================================================
 // useUpscaler Hook — 2x AI Upscaling using upscaler and @tensorflow/tfjs
-// Lazy loaded to prevent main bundle bloat.
-// =============================================================================
+// Offloaded to a Web Worker to prevent main thread blocking!
 
 import { useCallback, useState } from 'react';
 import { useEditorStore } from '@/stores/editorStore';
 import { useToast } from '@/hooks/useToast';
 
 export type UpscaleStatus = 'idle' | 'processing' | 'error';
+
+// Singleton worker to preserve the TFJS model in memory across panel switches
+let globalUpscaleWorker: Worker | null = null;
+
+function getUpscaleWorker(): Worker {
+  if (!globalUpscaleWorker) {
+    globalUpscaleWorker = new Worker(
+      new URL('../workers/upscaleWorker.ts', import.meta.url),
+      { type: 'module' }
+    );
+  }
+  return globalUpscaleWorker;
+}
 
 export function useUpscaler() {
   const toast = useToast();
@@ -27,30 +38,35 @@ export function useUpscaler() {
       return;
     }
 
+    const worker = getUpscaleWorker();
+
+    setStatus('processing');
+    setProgress(5);
+
+    // Promise wrapper for the worker message
     try {
-      setStatus('processing');
-      setProgress(5);
+      const upscaledDataUrl = await new Promise<string>((resolve, reject) => {
+        const handleMessage = (e: MessageEvent) => {
+          const data = e.data as { type: string; payload: Record<string, unknown> };
+          const { type, payload } = data;
+          if (type === 'PROGRESS') {
+            setProgress(Number(payload.progress));
+          } else if (type === 'SUCCESS') {
+            worker.removeEventListener('message', handleMessage);
+            resolve(String(payload.dataUrl));
+          } else if (type === 'ERROR') {
+            worker.removeEventListener('message', handleMessage);
+            reject(new Error(String(payload.error)));
+          }
+        };
 
-      // Dynamically import to keep bundle small
-      const [{ default: Upscaler }, tf] = await Promise.all([
-        import('upscaler'),
-        import('@tensorflow/tfjs') // Import tfjs so it initializes
-      ]);
-
-      await tf.ready(); // Ensure TF backend is initialized
-
-      setProgress(20);
-
-      const upscaler = new Upscaler();
-      
-      setProgress(30);
-      
-      const upscaledDataUrl = await upscaler.upscale(currentProject.originalImage.dataUrl, {
-        patchSize: 64, // Prevents memory crashes on large images
-        padding: 2,
-        progress: (pct: number) => {
-          setProgress(Math.round(30 + pct * 65));
-        }
+        worker.addEventListener('message', handleMessage);
+        
+        // Start the worker
+        worker.postMessage({
+          type: 'START_UPSCALE',
+          payload: { dataUrl: currentProject.originalImage!.dataUrl }
+        });
       });
 
       setProgress(95);

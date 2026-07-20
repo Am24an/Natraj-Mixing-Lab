@@ -1,4 +1,3 @@
-// =============================================================================
 // StorageEngine — IndexedDB persistence for Natraj Passport Photo Studio
 // Storage Engine
 //
@@ -7,13 +6,10 @@
 //   - All methods return Promises — no callbacks exposed externally
 //   - Zero dependency on React or Zustand — pure vanilla JS class
 //   - Open-Closed: new stores can be added without modifying existing logic
-// =============================================================================
 
 import type { StoredProject } from '@/types';
 
-// --------------------------------------------------------------------------
 // Constants
-// --------------------------------------------------------------------------
 
 const DB_NAME = 'natraj-studio-db';
 const DB_VERSION = 1;
@@ -23,15 +19,12 @@ const STORES = {
   PREFERENCES: 'preferences',
 } as const;
 
-// --------------------------------------------------------------------------
 // StorageEngine Class
-// --------------------------------------------------------------------------
 
-export class StorageEngine {
+class StorageEngine {
   private db: IDBDatabase | null = null;
   private openPromise: Promise<IDBDatabase> | null = null;
 
-  // ---------- Open ----------
 
   /**
    * Open (or re-use) the IndexedDB connection.
@@ -74,7 +67,6 @@ export class StorageEngine {
     return this.openPromise;
   }
 
-  // ---------- Schema ----------
 
   private createSchema(db: IDBDatabase): void {
     // Projects store
@@ -89,7 +81,6 @@ export class StorageEngine {
     }
   }
 
-  // ---------- Projects CRUD ----------
 
   async saveProject(project: StoredProject): Promise<void> {
     const db = await this.open();
@@ -135,7 +126,6 @@ export class StorageEngine {
     });
   }
 
-  // ---------- Preferences ----------
 
   async savePreference<T>(key: string, value: T): Promise<void> {
     const db = await this.open();
@@ -155,7 +145,6 @@ export class StorageEngine {
     return result?.value ?? null;
   }
 
-  // ---------- Internal Helpers ----------
 
   /**
    * Run a write transaction (put/delete/clear) and resolve when complete.
@@ -195,7 +184,6 @@ export class StorageEngine {
     });
   }
 
-  // ---------- Cleanup ----------
 
   close(): void {
     this.db?.close();

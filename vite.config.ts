@@ -5,6 +5,7 @@ import { resolve } from 'path';
 
 // https://vite.dev/config/
 export default defineConfig({
+  base: './', // Ensures relative paths for GitHub Pages sub-directory deployment
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
@@ -36,9 +37,9 @@ export default defineConfig({
           if (id.includes('node_modules/lucide-react')) {
             return 'lucide';
           }
-          // imgly/background-removal is large — keep it in its own chunk
-          if (id.includes('@imgly/background-removal')) {
-            return 'imgly-bg';
+          // @imgly/background-removal is large — keep it in its own chunk
+          if (id.includes('@imgly/background-removal') || id.includes('@tensorflow') || id.includes('upscaler')) {
+            return 'ai-engines';
           }
           return undefined;
         },

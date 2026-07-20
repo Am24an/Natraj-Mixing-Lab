@@ -1,23 +1,28 @@
-import { removeBackground, type Config } from '@imgly/background-removal';
+import { removeBackground as imglyRemoveBackground, type Config } from '@imgly/background-removal';
 
 interface WorkerMessageData {
   id: number;
   type: 'REMOVE_BACKGROUND';
-  payload: { imageBlob: Blob };
+  payload: { 
+    imageBlob: Blob;
+    modelVariant?: 'auto' | 'isnet_quint8' | 'isnet';
+  };
 }
 
-// Listen for messages from the main thread
 self.onmessage = async (event: MessageEvent<WorkerMessageData>) => {
   const { id, type, payload } = event.data;
 
   if (type === 'REMOVE_BACKGROUND') {
     try {
-      const { imageBlob } = payload;
+      const { imageBlob, modelVariant } = payload;
+      const targetModel = modelVariant === 'auto' ? 'isnet_fp16' : (modelVariant || 'isnet_fp16');
       
       const config: Config = {
-        progress: (_key: string, current: number, total: number) => {
-          if (total > 0) {
-            // Send progress back to main thread
+        model: targetModel,
+        // Aggressive caching: tell the browser to skip Etag validation and use local disk cache immediately
+        fetchArgs: { cache: 'force-cache' },
+        progress: (key, current, total) => {
+          if (total > 0 && key.includes('compute')) {
             self.postMessage({
               id,
               type: 'PROGRESS',
@@ -27,19 +32,22 @@ self.onmessage = async (event: MessageEvent<WorkerMessageData>) => {
         },
       };
 
-      // Perform the heavy background removal on this worker thread
-      const resultBlob = await removeBackground(imageBlob, config);
+      // Run background removal exactly ONCE to prevent OOM errors and maximize speed
+      const resultBlob = await imglyRemoveBackground(imageBlob, config);
 
       self.postMessage({
         id,
         type: 'SUCCESS',
         payload: { resultBlob }
       });
-    } catch (error) {
+
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Worker failed to remove background';
+      console.error('[Worker Error]', errorMessage);
       self.postMessage({
         id,
         type: 'ERROR',
-        payload: { error: error instanceof Error ? error.message : String(error) }
+        payload: { error: errorMessage }
       });
     }
   }

@@ -1,10 +1,6 @@
-// =============================================================================
 // Core Types — Natraj Mixing Lab Passport Photo Studio
-// =============================================================================
 
-// --------------------------------------------------------------------------
 // Image & Project Types
-// --------------------------------------------------------------------------
 
 export type ImageFormat = 'jpeg' | 'png' | 'webp';
 
@@ -41,9 +37,7 @@ export interface Project {
   editingState: EditingState;
 }
 
-// --------------------------------------------------------------------------
 // Editing State Types
-// --------------------------------------------------------------------------
 
 export interface BackgroundState {
   isRemoved: boolean;
@@ -95,18 +89,22 @@ export const DEFAULT_ENHANCEMENT: EnhancementState = {
   shadows: 0,
 };
 
+export interface EraserState {
+  size: number;
+  mode: 'erase' | 'restore';
+}
+
 export interface EditingState {
-  background: BackgroundState;
   crop: CropState;
+  background: BackgroundState;
   enhancement: EnhancementState;
+  eraser: EraserState;
   previewMode: PreviewMode;
 }
 
 export type PreviewMode = 'normal' | 'comparison';
 
-// --------------------------------------------------------------------------
 // History / Undo-Redo Types
-// --------------------------------------------------------------------------
 
 export type EditingAction =
   | { type: 'BACKGROUND_REMOVED'; maskDataUrl: string }
@@ -129,9 +127,7 @@ export interface HistoryState {
   currentIndex: number;
 }
 
-// --------------------------------------------------------------------------
 // UI / Workspace Types
-// --------------------------------------------------------------------------
 
 export type ActiveTool =
   | 'background-removal'
@@ -140,6 +136,7 @@ export type ActiveTool =
   | 'enhancement'
   | 'upscale'
   | 'comparison'
+  | 'eraser'
   | null;
 
 export type DialogType =
@@ -170,29 +167,9 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   recentBackgroundColors: [],
 };
 
-// --------------------------------------------------------------------------
-// Export Types
-// --------------------------------------------------------------------------
 
-export interface ExportOptions {
-  format: ImageFormat;
-  quality: number;         // 0–100
-  dpi: number;             // 72, 96, 150, 300
-  width?: number;          // Override width in px
-  height?: number;         // Override height in px
-  includeBackground: boolean;
-}
 
-export const DEFAULT_EXPORT_OPTIONS: ExportOptions = {
-  format: 'jpeg',
-  quality: 95,
-  dpi: 300,
-  includeBackground: true,
-};
-
-// --------------------------------------------------------------------------
 // Toast Notification Types
-// --------------------------------------------------------------------------
 
 export type ToastVariant = 'success' | 'error' | 'warning' | 'info';
 
@@ -204,9 +181,7 @@ export interface ToastMessage {
   duration?: number;
 }
 
-// --------------------------------------------------------------------------
 // Storage Types (IndexedDB)
-// --------------------------------------------------------------------------
 
 export interface StoredProject {
   id: string;
@@ -217,9 +192,9 @@ export interface StoredProject {
   editingStateJson: string;
 }
 
-// --------------------------------------------------------------------------
+
+
 // Processing Types
-// --------------------------------------------------------------------------
 
 export type ProcessingStatus = 'idle' | 'loading' | 'processing' | 'success' | 'error';
 
@@ -230,9 +205,6 @@ export interface ProcessingState {
   error: string | null;
 }
 
-// --------------------------------------------------------------------------
-// Passport Color Presets
-// --------------------------------------------------------------------------
 
 export interface PassportColorPreset {
   id: string;

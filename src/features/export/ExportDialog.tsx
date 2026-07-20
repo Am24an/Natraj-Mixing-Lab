@@ -1,13 +1,11 @@
-// =============================================================================
 // ExportDialog — HD export with format, quality, and pixel math (Single Photo Only)
-// =============================================================================
 
 import { useState } from 'react';
 import { X, Download, FileImage, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { useEditorStore } from '@/stores/editorStore';
 import { useToast } from '@/hooks/useToast';
-import { ImageProcessor } from '@/core/processing/ImageProcessor';
+import { ExportService } from '@/core/processing/ExportService';
 
 interface ExportDialogProps {
   onClose: () => void;
@@ -38,117 +36,13 @@ export function ExportDialog({ onClose }: ExportDialogProps) {
 
     setIsExporting(true);
     try {
-      const { editingState } = project;
-      const { crop, background, enhancement } = editingState;
-
-      // 1. Load Original Source at Full Resolution
-      const src = new Image();
-      src.src = project.originalImage.dataUrl;
-      await new Promise<void>((res, rej) => {
-        src.onload = () => res();
-        src.onerror = () => rej(new Error('Failed to load source image'));
-      });
-
-      const origW = src.naturalWidth;
-      const origH = src.naturalHeight;
-
-      // 2. Calculate crop bounds exactly (fallback to full size if not cropped)
-      const cx = crop.width === 0 ? 0 : (crop.x / 100) * origW;
-      const cy = crop.height === 0 ? 0 : (crop.y / 100) * origH;
-      const cw = crop.width === 0 ? origW : (crop.width / 100) * origW;
-      const ch = crop.height === 0 ? origH : (crop.height / 100) * origH;
-
-      // 3. Create single photo canvas
-      const canvas = document.createElement('canvas');
-      const isRotated = crop.rotation % 180 !== 0;
-      canvas.width = Math.round(isRotated ? ch : cw);
-      canvas.height = Math.round(isRotated ? cw : ch);
-      const ctx = canvas.getContext('2d')!;
-
-      // Background color
-      if (background.replacementColor) {
-        ctx.fillStyle = background.replacementColor;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-      }
-
-      // CSS Filters (Brightness, Contrast, Saturation)
-      const filters: string[] = [];
-      if (enhancement.brightness !== 0) filters.push(`brightness(${1 + enhancement.brightness / 100})`);
-      if (enhancement.contrast !== 0) filters.push(`contrast(${1 + enhancement.contrast / 100})`);
-      if (enhancement.saturation !== 0) filters.push(`saturate(${1 + enhancement.saturation / 100})`);
-      if (filters.length > 0) ctx.filter = filters.join(' ');
-
-      // Transform and draw
-      ctx.save();
-      ctx.translate(canvas.width / 2, canvas.height / 2);
-      ctx.rotate((crop.rotation * Math.PI) / 180);
-      ctx.scale(crop.flipHorizontal ? -1 : 1, crop.flipVertical ? -1 : 1);
-      ctx.drawImage(src, cx, cy, cw, ch, -cw / 2, -ch / 2, cw, ch);
-      ctx.restore();
-      ctx.filter = 'none';
-
-      // 4. If background removed, maskDataUrl IS the final transparent result from @imgly
-      // Draw it directly instead of original + mask compositing
-      if (background.isRemoved && background.maskDataUrl) {
-        // Clear and redraw using the result PNG
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        // Re-apply background color behind it
-        if (background.replacementColor) {
-          ctx.fillStyle = background.replacementColor;
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-        }
-
-        const resultImg = new Image();
-        resultImg.src = background.maskDataUrl;
-        await new Promise<void>((res) => { resultImg.onload = () => res(); });
-
-        // Recalculate crop bounds specifically for the mask image's dimensions
-        const maskCx = (crop.width === 0 ? 0 : crop.x / 100) * resultImg.naturalWidth;
-        const maskCy = (crop.height === 0 ? 0 : crop.y / 100) * resultImg.naturalHeight;
-        const maskCw = (crop.width === 0 ? 1 : crop.width / 100) * resultImg.naturalWidth;
-        const maskCh = (crop.height === 0 ? 1 : crop.height / 100) * resultImg.naturalHeight;
-
-        // Apply CSS filters and transform again
-        if (filters.length > 0) ctx.filter = filters.join(' ');
-        ctx.save();
-        ctx.translate(canvas.width / 2, canvas.height / 2);
-        ctx.rotate((crop.rotation * Math.PI) / 180);
-        ctx.scale(crop.flipHorizontal ? -1 : 1, crop.flipVertical ? -1 : 1);
-        ctx.drawImage(resultImg, maskCx, maskCy, maskCw, maskCh, -cw / 2, -ch / 2, cw, ch);
-        ctx.restore();
-        ctx.filter = 'none';
-      }
-
-      // 5. Apply Pixel Enhancements (Sharpness, Highlights, Shadows)
-      if (enhancement.sharpness !== 0 || enhancement.highlights !== 0 || enhancement.shadows !== 0) {
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        ImageProcessor.applyEnhancements(imageData, enhancement);
-        ctx.putImageData(imageData, 0, 0);
-      }
-
-      // 6. Export Blob
-      const mimeType = `image/${format}`;
-      const blob = await new Promise<Blob | null>((res) =>
-        canvas.toBlob(res, mimeType, quality / 100)
-      );
-
-      if (!blob) throw new Error('Export failed — canvas returned empty blob');
-
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${project.name}.${format}`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
+      await ExportService.exportProject(project, format, quality);
       setDone(true);
-      toast.success(`Exported as ${format.toUpperCase()}`, `${project.name}.${format}`);
-      setTimeout(onClose, 1200);
+      toast.success('Export Complete', `Saved as ${format.toUpperCase()}`);
+      setTimeout(onClose, 2000);
     } catch (err) {
-      toast.error('Export failed', err instanceof Error ? err.message : 'Unknown error');
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      toast.error('Export Failed', msg);
     } finally {
       setIsExporting(false);
     }

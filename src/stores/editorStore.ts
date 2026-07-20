@@ -18,9 +18,7 @@ import {
   DEFAULT_PREFERENCES,
 } from '@/types';
 
-// --------------------------------------------------------------------------
 // Default State Factories
-// --------------------------------------------------------------------------
 
 function createDefaultBackgroundState(): BackgroundState {
   return {
@@ -54,13 +52,12 @@ function createDefaultEditingState(): EditingState {
     background: createDefaultBackgroundState(),
     crop: createDefaultCropState(),
     enhancement: { ...DEFAULT_ENHANCEMENT },
+    eraser: { size: 20, mode: 'erase' },
     previewMode: 'normal',
   };
 }
 
-// --------------------------------------------------------------------------
 // Editor Store
-// --------------------------------------------------------------------------
 
 interface EditorStore {
   // Project State
@@ -95,6 +92,7 @@ interface EditorStore {
 
   // Enhancement Actions
   updateEnhancement: (enhancement: Partial<EnhancementState>) => void;
+  updateEraser: (eraser: Partial<EditingState['eraser']>) => void;
   resetEnhancement: () => void;
 
   // Preview Actions
@@ -116,7 +114,6 @@ export const useEditorStore = create<EditorStore>()(
   devtools(
     temporal(
       (set, get) => ({
-        // ---------- Initial State ----------
         project: null,
         activeTool: null,
         activeDialog: null,
@@ -129,7 +126,6 @@ export const useEditorStore = create<EditorStore>()(
         toasts: [],
         preferences: { ...DEFAULT_PREFERENCES },
 
-        // ---------- Project Actions ----------
         createProject: (image) => {
           const project: Project = {
             id: generateId(),
@@ -157,11 +153,9 @@ export const useEditorStore = create<EditorStore>()(
           );
         },
 
-        // ---------- Tool Actions ----------
         setActiveTool: (tool) => set({ activeTool: tool }, false, 'setActiveTool'),
         setActiveDialog: (dialog) => set({ activeDialog: dialog }, false, 'setActiveDialog'),
 
-        // ---------- Background Actions ----------
         setBackgroundProcessing: (isProcessing, progress = 0) => {
           const { project } = get();
           if (!project) return;
@@ -277,7 +271,6 @@ export const useEditorStore = create<EditorStore>()(
           );
         },
 
-        // ---------- Crop Actions ----------
         updateCrop: (crop) => {
           const { project } = get();
           if (!project) return;
@@ -318,7 +311,6 @@ export const useEditorStore = create<EditorStore>()(
           );
         },
 
-        // ---------- Enhancement Actions ----------
         updateEnhancement: (enhancement) => {
           const { project } = get();
           if (!project) return;
@@ -336,6 +328,26 @@ export const useEditorStore = create<EditorStore>()(
             },
             false,
             'updateEnhancement'
+          );
+        },
+
+        updateEraser: (eraser) => {
+          const { project } = get();
+          if (!project) return;
+          set(
+            {
+              project: {
+                ...project,
+                status: 'unsaved',
+                updatedAt: Date.now(),
+                editingState: {
+                  ...project.editingState,
+                  eraser: { ...project.editingState.eraser, ...eraser },
+                },
+              },
+            },
+            false,
+            'updateEraser'
           );
         },
 
@@ -359,7 +371,6 @@ export const useEditorStore = create<EditorStore>()(
           );
         },
 
-        // ---------- Preview Actions ----------
         toggleComparisonMode: () => {
           const { project } = get();
           if (!project) return;
@@ -379,7 +390,6 @@ export const useEditorStore = create<EditorStore>()(
           );
         },
 
-        // ---------- Processing Actions ----------
         setProcessing: (state: Partial<ProcessingState>) => {
           set(
             (prev: EditorStore) => ({ processingState: { ...prev.processingState, ...state } }),
@@ -388,7 +398,6 @@ export const useEditorStore = create<EditorStore>()(
           );
         },
 
-        // ---------- Toast Actions ----------
         addToast: (toast: Omit<ToastMessage, 'id'>) => {
           const id = generateId();
           set(
@@ -406,7 +415,6 @@ export const useEditorStore = create<EditorStore>()(
           );
         },
 
-        // ---------- Preference Actions ----------
         updatePreferences: (prefs: Partial<UserPreferences>) => {
           set(
             (prev: EditorStore) => ({ preferences: { ...prev.preferences, ...prefs } }),
@@ -450,9 +458,3 @@ export const useActiveTool = () => useEditorStore((s) => s.activeTool);
 export const useActiveDialog = () => useEditorStore((s) => s.activeDialog);
 export const useToasts = () => useEditorStore((s) => s.toasts);
 export const usePreferences = () => useEditorStore((s) => s.preferences);
-export const useEditingState = () => useEditorStore((s) => s.project?.editingState ?? null);
-export const useBackgroundState = () =>
-  useEditorStore((s) => s.project?.editingState.background ?? null);
-export const useEnhancementState = () =>
-  useEditorStore((s) => s.project?.editingState.enhancement ?? null);
-export const useCropState = () => useEditorStore((s) => s.project?.editingState.crop ?? null);

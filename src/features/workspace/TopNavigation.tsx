@@ -235,9 +235,7 @@ export function TopNavigation({
   );
 }
 
-// --------------------------------------------------------------------------
 // Status Badge
-// --------------------------------------------------------------------------
 
 function StatusBadge({ status }: { status?: ProjectStatus }) {
   if (!status || status === 'empty' || status === 'saved') return null;

@@ -1,7 +1,5 @@
-// =============================================================================
 // Viewport Controller — Zoom & Pan
 // Viewport Controller
-// =============================================================================
 
 export interface ViewportState {
   zoom: number;
@@ -16,14 +14,12 @@ export interface ViewportConstraints {
 
 const DEFAULT_CONSTRAINTS: ViewportConstraints = {
   minZoom: 0.1,
-  maxZoom: 1.5,
+  maxZoom: 5.0, // 500% zoom for pixel-level eraser editing
 };
 
-// --------------------------------------------------------------------------
 // ViewportController
-// --------------------------------------------------------------------------
 
-export class ViewportController {
+class ViewportController {
   private state: ViewportState = { zoom: 1, panX: 0, panY: 0 };
   private constraints: ViewportConstraints;
   private listeners: Array<(state: ViewportState) => void> = [];
@@ -32,7 +28,6 @@ export class ViewportController {
     this.constraints = { ...DEFAULT_CONSTRAINTS, ...constraints };
   }
 
-  // ---------- Getters ----------
 
   get zoom(): number {
     return this.state.zoom;
@@ -50,7 +45,6 @@ export class ViewportController {
     return { ...this.state };
   }
 
-  // ---------- Zoom ----------
 
   /**
    * Zoom toward/away from a focal point (e.g., mouse cursor position).
@@ -87,7 +81,6 @@ export class ViewportController {
     this.notify();
   }
 
-  // ---------- Pan ----------
 
   pan(dx: number, dy: number): void {
     this.state = {
@@ -98,7 +91,6 @@ export class ViewportController {
     this.notify();
   }
 
-  // ---------- Presets ----------
 
   /** Reset to 1:1 zoom, centered */
   resetToFit(): void {
@@ -118,13 +110,11 @@ export class ViewportController {
     this.notify();
   }
 
-  // ---------- Internal ----------
 
   private clampZoom(zoom: number): number {
     return Math.max(this.constraints.minZoom, Math.min(this.constraints.maxZoom, zoom));
   }
 
-  // ---------- Subscription ----------
 
   subscribe(listener: (state: ViewportState) => void): () => void {
     this.listeners.push(listener);

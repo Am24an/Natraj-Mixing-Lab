@@ -130,9 +130,7 @@ export function Workspace() {
   );
 }
 
-// --------------------------------------------------------------------------
 // Dialog Layer — temporary overlays per CDVLS spec
-// --------------------------------------------------------------------------
 
 interface DialogLayerProps {
   activeDialog: Exclude<DialogType, null>;

@@ -23,7 +23,7 @@ export function EnhancementPanel() {
     <div className="flex flex-col h-full space-y-8">
       {/* Section Header */}
       <div>
-        <h2 className="text-[18px] font-semibold text-[var(--color-text)] mb-1">
+        <h2 className="text-[18px] font-semibold text-[var(--color-text-primary)] mb-1">
           Enhancement
         </h2>
         <p className="text-[14px] text-[var(--color-text-muted)]">
@@ -38,7 +38,7 @@ export function EnhancementPanel() {
           return (
             <div key={slider.id} className="space-y-3">
               <div className="flex justify-between items-center">
-                <label className="text-[13px] text-[var(--color-text)] flex items-center gap-2">
+                <label className="text-[13px] text-[var(--color-text-primary)] flex items-center gap-2">
                   {Icon && <Icon size={14} className="text-[var(--color-text-muted)]" />}
                   {slider.label}
                 </label>

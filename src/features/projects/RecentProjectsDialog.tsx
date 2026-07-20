@@ -266,9 +266,7 @@ export function RecentProjectsDialog({ onClose, loadAllProjects, deleteProject }
   );
 }
 
-// --------------------------------------------------------------------------
 // Helpers
-// --------------------------------------------------------------------------
 
 function formatRelativeTime(timestamp: number): string {
   const diffMs = Date.now() - timestamp;

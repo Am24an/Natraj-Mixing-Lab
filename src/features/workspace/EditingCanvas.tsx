@@ -36,9 +36,7 @@ export function EditingCanvas({ project, activeTool }: EditingCanvasProps) {
   );
 }
 
-// --------------------------------------------------------------------------
 // ImageCanvas
-// --------------------------------------------------------------------------
 
 interface ImageCanvasProps {
   project: Project;
@@ -55,6 +53,9 @@ function ImageCanvas({ project, activeTool }: ImageCanvasProps) {
 
   const { canvasRef, containerRef, rendererRef } = useCanvas();
 
+  const isCropping = activeTool === 'crop';
+  const isErasing = activeTool === 'eraser';
+
   // Crop state for react-image-crop
   const [crop, setCrop] = useState<Crop>({
     unit: '%',
@@ -63,6 +64,12 @@ function ImageCanvas({ project, activeTool }: ImageCanvasProps) {
     width: cropState?.width ?? 80,
     height: cropState?.height ?? 80,
   });
+
+  // Eraser drawing state
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [isHoveringImage, setIsHoveringImage] = useState(false);
+  const eraserState = useEditorStore((s) => s.project?.editingState.eraser);
+  const setBackgroundRemoved = useEditorStore((s) => s.setBackgroundRemoved);
 
   // Sync aspect / preset changes from the panel into the crop UI
   useEffect(() => {
@@ -86,6 +93,24 @@ function ImageCanvas({ project, activeTool }: ImageCanvasProps) {
     }
   }, [updateCrop]);
 
+  // Brush preview state
+  const [showPreviewCircle, setShowPreviewCircle] = useState(false);
+  const eraserSize = eraserState?.size;
+  const prevSize = useRef(eraserSize);
+
+  useEffect(() => {
+    if (!isErasing || !eraserSize || isDrawing) return;
+    
+    // Trigger preview overlay if size changes
+    if (prevSize.current !== eraserSize) {
+      prevSize.current = eraserSize;
+      setShowPreviewCircle(true);
+      const timeout = setTimeout(() => setShowPreviewCircle(false), 800);
+      return () => clearTimeout(timeout);
+    }
+    return undefined;
+  }, [eraserSize, isErasing, isDrawing]);
+
   // Attach non-passive wheel listener
   useEffect(() => {
     const el = containerRef.current;
@@ -104,8 +129,6 @@ function ImageCanvas({ project, activeTool }: ImageCanvasProps) {
       panY: viewport.panY,
     });
   }, [editingState, viewport, rendererRef]);
-
-  const isCropping = activeTool === 'crop';
 
   // Calculate where the image is drawn on the canvas so we can position
   // the ReactCrop overlay exactly on top of it
@@ -131,6 +154,135 @@ function ImageCanvas({ project, activeTool }: ImageCanvasProps) {
 
   const imgBounds = isCropping ? getImageBounds() : null;
 
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (isCropping) return;
+    if (isErasing) {
+      if (e.button !== 0) return; // Only left click
+      setIsDrawing(true);
+      applyEraserStroke(e);
+      return;
+    }
+    if (e.currentTarget) e.currentTarget.style.cursor = 'grabbing';
+    canvasEvents.onMouseDown(e);
+  };
+
+  const applyEraserStroke = (e: React.PointerEvent<HTMLDivElement>) => {
+    const renderer = rendererRef.current;
+    if (!renderer || !editingState || !eraserState) return;
+    
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    
+    const imgCoords = renderer.screenToImageCoords(mouseX, mouseY, editingState, {
+      zoom: viewport.zoom,
+      panX: viewport.panX,
+      panY: viewport.panY
+    });
+    
+    if (imgCoords) {
+      renderer.applyBrushStroke(imgCoords.x, imgCoords.y, eraserState.size, eraserState.mode);
+    }
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (isCropping) return;
+    if (isErasing) {
+      if (imgBounds) {
+        const rect = containerRef.current?.getBoundingClientRect();
+        if (rect) {
+          const mouseX = e.clientX - rect.left;
+          const mouseY = e.clientY - rect.top;
+          const isInside = mouseX >= imgBounds.drawX && mouseX <= imgBounds.drawX + imgBounds.drawW &&
+                           mouseY >= imgBounds.drawY && mouseY <= imgBounds.drawY + imgBounds.drawH;
+          if (isInside !== isHoveringImage) {
+            setIsHoveringImage(isInside);
+          }
+        }
+      }
+
+      if (isDrawing) {
+        applyEraserStroke(e);
+      }
+      return;
+    }
+    canvasEvents.onMouseMove(e);
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (isCropping) return;
+    if (isErasing) {
+      if (isDrawing) {
+        setIsDrawing(false);
+        const renderer = rendererRef.current;
+        if (renderer) {
+          renderer.getMaskDataUrl().then((newMaskUrl) => {
+            if (newMaskUrl) {
+              setBackgroundRemoved(newMaskUrl);
+            }
+          }).catch(console.error);
+        }
+      }
+      return;
+    }
+    if (e.currentTarget) e.currentTarget.style.cursor = 'grab';
+    canvasEvents.onMouseUp();
+  };
+
+  const getBrushPreviewDiameter = () => {
+    if (!project.originalImage || !eraserState) return 0;
+    const container = containerRef.current;
+    if (!container) return 0;
+    
+    const cw = container.clientWidth;
+    const ch = container.clientHeight;
+    const iw = project.originalImage.dimensions.width;
+    const ih = project.originalImage.dimensions.height;
+    
+    const fitScale = Math.min(cw / iw, ch / ih) * viewport.zoom;
+    const brushDiameterPixels = eraserState.size * 2;
+    return Math.max(4, brushDiameterPixels * fitScale);
+  };
+
+  const getCursor = () => {
+    if (isCropping) return 'crosshair';
+    if (!isErasing || !eraserState || !project.originalImage) return 'grab';
+    if (!isHoveringImage) return 'grab';
+    
+    const container = containerRef.current;
+    if (!container) return 'crosshair';
+    
+    const cw = container.clientWidth;
+    const ch = container.clientHeight;
+    const iw = project.originalImage.dimensions.width;
+    const ih = project.originalImage.dimensions.height;
+    
+    const fitScale = Math.min(cw / iw, ch / ih) * viewport.zoom;
+    const brushDiameterPixels = eraserState.size * 2; // size is radius
+    const screenDiameter = Math.max(4, brushDiameterPixels * fitScale);
+    const half = screenDiameter / 2;
+    
+    const isEraseMode = eraserState.mode === 'erase';
+    const strokeColor = isEraseMode ? 'rgba(255, 0, 0, 0.8)' : 'rgba(0, 255, 0, 0.8)';
+    const fillColor = isEraseMode ? 'rgba(255, 0, 0, 0.15)' : 'rgba(0, 255, 0, 0.15)';
+    
+    const svg = `
+      <svg width="${screenDiameter}" height="${screenDiameter}" viewBox="0 0 ${screenDiameter} ${screenDiameter}" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="${half}" cy="${half}" r="${Math.max(1, half - 1)}" fill="${fillColor}" stroke="white" stroke-width="1.5" />
+        <circle cx="${half}" cy="${half}" r="${Math.max(1, half - 1)}" fill="none" stroke="${strokeColor}" stroke-width="1.5" stroke-dasharray="2,2" />
+        <line x1="${half}" y1="${half - 3}" x2="${half}" y2="${half + 3}" stroke="black" stroke-width="1" />
+        <line x1="${half - 3}" y1="${half}" x2="${half + 3}" y2="${half}" stroke="black" stroke-width="1" />
+      </svg>
+    `.replace(/\s+/g, ' ').trim();
+
+    const encoded = btoa(svg);
+    return `url("data:image/svg+xml;base64,${encoded}") ${half} ${half}, crosshair`;
+  };
+
+  const previewDiam = (isErasing && showPreviewCircle) ? getBrushPreviewDiameter() : 0;
+
   return (
     <div
       ref={containerRef}
@@ -138,26 +290,36 @@ function ImageCanvas({ project, activeTool }: ImageCanvasProps) {
         position: 'relative',
         width: '100%',
         height: '100%',
-        cursor: isCropping ? 'crosshair' : 'grab',
+        cursor: getCursor(),
         userSelect: 'none',
+        touchAction: 'none' // Prevent scrolling while drawing on touch devices
       }}
-      onMouseDown={(e) => {
-        if (isCropping) return;
-        if (e.currentTarget) e.currentTarget.style.cursor = 'grabbing';
-        canvasEvents.onMouseDown(e);
-      }}
-      onMouseUp={(e) => {
-        if (isCropping) return;
-        if (e.currentTarget) e.currentTarget.style.cursor = 'grab';
-        canvasEvents.onMouseUp();
-      }}
-      onMouseLeave={(e) => {
-        if (isCropping) return;
-        if (e.currentTarget) e.currentTarget.style.cursor = 'grab';
-        canvasEvents.onMouseLeave();
-      }}
-      onMouseMove={isCropping ? undefined : canvasEvents.onMouseMove}
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
+      onPointerLeave={handlePointerUp}
+      onPointerMove={handlePointerMove}
     >
+      {/* Brush Size Preview Overlay */}
+      {isErasing && showPreviewCircle && eraserState && (
+        <div
+          style={{
+            position: 'absolute',
+            left: '50%',
+            top: '50%',
+            transform: 'translate(-50%, -50%)',
+            pointerEvents: 'none',
+            zIndex: 50,
+            width: previewDiam,
+            height: previewDiam,
+            borderRadius: '50%',
+            border: `1.5px dashed ${eraserState.mode === 'erase' ? 'rgba(255, 0, 0, 0.8)' : 'rgba(0, 255, 0, 0.8)'}`,
+            backgroundColor: eraserState.mode === 'erase' ? 'rgba(255, 0, 0, 0.15)' : 'rgba(0, 255, 0, 0.15)',
+            boxShadow: '0 0 0 1.5px white',
+            transition: 'width 0.1s, height 0.1s, opacity 0.2s',
+          }}
+        />
+      )}
+
       {/* Base canvas — always rendered */}
       <canvas
         ref={canvasRef}

@@ -1,9 +1,3 @@
-/* =============================================================================
-   Natraj Mixing Lab – Passport Photo Studio
-   Global Design System & CSS Tokens
-   Source of Truth: Design Token Specification (DTS) v1.0
-   ============================================================================= */
-
 @import 'tailwindcss';
 
 /* --------------------------------------------------------------------------- */
@@ -11,35 +5,35 @@
 /* --------------------------------------------------------------------------- */
 
 :root {
-  /* ── Brand Accent ─────────────────────────────────────────────────────── */
-  --color-primary: #0f766e;
-  --color-primary-hover: #115e59;
-  --color-primary-light: #ccfbf1;
+  /* ── Brand Accent (Dodger Blue 500) ───────────────────────────────────── */
+  --color-primary: #0584fa;
+  --color-primary-hover: #0469c8; /* 600 */
+  --color-primary-light: rgba(5, 132, 250, 0.15);
   --color-primary-foreground: #ffffff;
 
-  /* ── Neutral Palette ──────────────────────────────────────────────────── */
-  --color-background: #f8fafc;
-  --color-canvas-bg: #eef2f6;
-  --color-surface: #ffffff;
-  --color-surface-secondary: #f1f5f9;
-  --color-border: #e2e8f0;
-  --color-divider: #cbd5e1;
+  /* ── Neutral Palette (Dodger Blue Light) ──────────────────────────────── */
+  --color-background: #e6f3fe; /* 50 - Soft blue background */
+  --color-canvas-bg: #cde6fe; /* 100 - Slightly darker for canvas */
+  --color-surface: #ffffff; /* White panels for premium pop */
+  --color-surface-secondary: #e6f3fe; /* 50 - Secondary hover surfaces */
+  --color-border: #9bcefd; /* 200 - Borders */
+  --color-divider: #cde6fe; /* 100 - Dividers */
 
-  /* ── Typography Colors ────────────────────────────────────────────────── */
-  --color-text-primary: #0f172a;
-  --color-text-secondary: #475569;
-  --color-text-muted: #64748b;
-  --color-text-disabled: #94a3b8;
+  /* ── Typography Colors (Dodger Blue Dark) ─────────────────────────────── */
+  --color-text-primary: #011223; /* 950 - Almost black-blue */
+  --color-text-secondary: #023564; /* 800 - Slate blue */
+  --color-text-muted: #034f96; /* 700 */
+  --color-text-disabled: #379cfb; /* 400 */
 
-  /* ── Semantic Colors ──────────────────────────────────────────────────── */
-  --color-success: #16a34a;
-  --color-success-bg: #f0fdf4;
-  --color-warning: #d97706;
-  --color-warning-bg: #fffbeb;
-  --color-error: #dc2626;
-  --color-error-bg: #fef2f2;
-  --color-info: #2563eb;
-  --color-info-bg: #eff6ff;
+  /* ── Semantic Colors (Complimentary) ──────────────────────────────────── */
+  --color-success: #10b981;
+  --color-success-bg: rgba(16, 185, 129, 0.15);
+  --color-warning: #f59e0b;
+  --color-warning-bg: rgba(245, 158, 11, 0.15);
+  --color-error: #ef4444;
+  --color-error-bg: rgba(239, 68, 68, 0.15);
+  --color-info: #0584fa; /* 500 */
+  --color-info-bg: rgba(5, 132, 250, 0.15);
 
   /* ── Spacing System (8px grid) ────────────────────────────────────────── */
   --space-xs: 4px;
@@ -58,10 +52,10 @@
   --radius-full: 9999px;
 
   /* ── Shadow System ────────────────────────────────────────────────────── */
-  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
-  --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
-  --shadow-lg: 0 12px 40px rgba(15, 23, 42, 0.1);
-  --shadow-focus: 0 0 0 3px rgba(15, 118, 110, 0.25);
+  --shadow-sm: 0 1px 2px rgba(1, 18, 35, 0.05); /* Tinted with 950 */
+  --shadow-md: 0 4px 12px rgba(1, 18, 35, 0.08);
+  --shadow-lg: 0 12px 40px rgba(1, 18, 35, 0.1);
+  --shadow-focus: 0 0 0 3px rgba(5, 132, 250, 0.25);
 
   /* ── Motion Tokens ────────────────────────────────────────────────────── */
   --duration-hover: 120ms;
@@ -81,7 +75,7 @@
   --status-bar-height: 32px;
 
   /* ── Typography ───────────────────────────────────────────────────────── */
-  --font-family-primary: 'Geist', 'Inter', system-ui, -apple-system, sans-serif;
+  --font-family-primary: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
   --font-size-xs: 12px;
   --font-size-sm: 14px;
   --font-size-base: 16px;
@@ -114,32 +108,40 @@
 /* --------------------------------------------------------------------------- */
 
 [data-theme='dark'] {
-  --color-background: #0f172a;
-  --color-canvas-bg: #1e293b;
-  --color-surface: #1e293b;
-  --color-surface-secondary: #293548;
-  --color-border: #334155;
-  --color-divider: #475569;
-  --color-text-primary: #f8fafc;
-  --color-text-secondary: #cbd5e1;
-  --color-text-muted: #94a3b8;
-  --color-text-disabled: #64748b;
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.5);
+  /* ── Brand Accent (Dodger Blue 500) ───────────────────────────────────── */
+  --color-primary: #0584fa; /* 500 */
+  --color-primary-hover: #379cfb; /* 400 (Lighter hover for dark mode) */
+  --color-primary-light: rgba(5, 132, 250, 0.25);
+  --color-primary-foreground: #ffffff;
+
+  /* ── Neutral Palette (Dodger Blue Ultra Dark) ─────────────────────────── */
+  --color-background: #011223; /* 950 - Deepest background */
+  --color-canvas-bg: #011223; /* 950 - Canvas matches background */
+  --color-surface: #011a32; /* 900 - Panels elevate slightly */
+  --color-surface-secondary: #023564; /* 800 - Hover states */
+  --color-border: #023564; /* 800 - Subtle borders */
+  --color-divider: #023564; /* 800 - Dividers */
+
+  /* ── Typography Colors (Dodger Blue Light) ────────────────────────────── */
+  --color-text-primary: #ffffff; /* Pure white for maximum premium contrast */
+  --color-text-secondary: #cde6fe; /* 100 - High legibility secondary */
+  --color-text-muted: #69b5fc; /* 300 - Muted */
+  --color-text-disabled: #034f96; /* 700 - Disabled */
+
+  /* ── Shadows (Dodger Blue Tinted) ─────────────────────────────────────── */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.7);
 
   /* ── Semantic Colors (Dark Mode) ──────────────────────────────────────── */
-  --color-success: #22c55e;
-  --color-success-bg: rgba(22, 163, 74, 0.15);
-  --color-warning: #f59e0b;
-  --color-warning-bg: rgba(217, 119, 6, 0.15);
-  --color-error: #ef4444;
-  --color-error-bg: rgba(220, 38, 38, 0.15);
-  --color-info: #3b82f6;
-  --color-info-bg: rgba(37, 99, 235, 0.15);
-
-  /* Brand Overrides */
-  --color-primary-light: rgba(15, 118, 110, 0.25);
+  --color-success: #34d399;
+  --color-success-bg: rgba(52, 211, 153, 0.15);
+  --color-warning: #fbbf24;
+  --color-warning-bg: rgba(251, 191, 36, 0.15);
+  --color-error: #f87171;
+  --color-error-bg: rgba(248, 113, 113, 0.15);
+  --color-info: #0584fa; /* 500 */
+  --color-info-bg: rgba(5, 132, 250, 0.15);
 }
 
 /* --------------------------------------------------------------------------- */
@@ -255,6 +257,7 @@ body {
 
 /* Reduced motion support */
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {
@@ -315,6 +318,7 @@ canvas {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -324,6 +328,7 @@ canvas {
   from {
     opacity: 1;
   }
+
   to {
     opacity: 0;
   }
@@ -334,6 +339,7 @@ canvas {
     opacity: 0;
     transform: scale(0.96);
   }
+
   to {
     opacity: 1;
     transform: scale(1);
@@ -345,6 +351,7 @@ canvas {
     opacity: 0;
     transform: translateX(16px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -356,6 +363,7 @@ canvas {
     opacity: 0;
     transform: translateX(-16px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -367,6 +375,7 @@ canvas {
     opacity: 0;
     transform: translateY(8px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -377,6 +386,7 @@ canvas {
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
@@ -387,6 +397,7 @@ canvas {
     transform: scale(0.95);
     opacity: 1;
   }
+
   100% {
     transform: scale(1.1);
     opacity: 0;
@@ -475,19 +486,19 @@ canvas {
     overflow-y: auto;
     overflow-x: hidden;
   }
-  
+
   .mobile-nav {
     grid-column: 1 !important;
     grid-row: 1 !important;
   }
-  
+
   .mobile-canvas {
     grid-column: 1 !important;
     grid-row: 2 !important;
     height: 70vh !important;
     min-height: 400px;
   }
-  
+
   /* The panel sits naturally below the canvas */
   .mobile-panel {
     grid-column: 1 !important;
@@ -502,7 +513,7 @@ canvas {
     background: var(--color-surface);
     box-shadow: none;
   }
-  
+
   /* The toolbar goes at the very bottom */
   .mobile-toolbar {
     grid-column: 1 !important;
@@ -513,7 +524,7 @@ canvas {
     border-top: 1px solid var(--color-border);
     z-index: 20;
   }
-  
+
   /* Override inline styles for toolbar children on mobile */
   .mobile-toolbar-inner {
     flex-direction: row !important;
@@ -586,4 +597,3 @@ canvas {
   border: 2px solid white;
   box-shadow: var(--shadow-sm);
 }
-
