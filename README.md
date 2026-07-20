@@ -27,10 +27,12 @@ Unlike traditional photo editors, **everything runs 100% locally in your browser
 
 - 🔒 **Absolute Privacy**: All image processing (including AI background removal and upscaling) happens locally on the user's device.
 - ✂️ **AI Background Removal**: Automatically separates the subject from the background using the highly accurate `@imgly/background-removal` WASM model.
+- 🖌️ **Magic Eraser & Restore**: Clean up stubborn background residue or restore accidentally removed parts with a dynamic, pixel-perfect brush tool (supports up to 500% zoom).
 - 🎨 **Passport Color Presets**: Instantly apply standard background colors (White, Light Blue, Cream, Grey) with a custom hex picker.
 - 🖼️ **AI Image Upscaling (Super Resolution)**: Uses TensorFlow.js (`upscaler`) to enhance and double the resolution of low-quality photos without losing detail.
 - 📐 **Smart Cropping & Transforms**: Pre-configured aspect ratios (e.g., 35x45mm Passport, 2x2 US Passport, Square) with flawless rotation and flipping capabilities.
 - 🎛️ **Advanced Pixel Enhancements**: Granular control over Brightness, Contrast, Saturation, Sharpness, Highlights, and Shadows.
+- 🌓 **Premium Theming**: Includes a meticulously crafted Light Mode and a deep "Dodger Blue" Dark Mode for professional grading in any environment.
 - 📱 **Fully Mobile Responsive**: Features a specialized, stacked scrollable layout that perfectly adapts to phones and tablets without overlapping UI.
 - ↩️ **Time-Travel Undo/Redo**: Full state history management powered by `zustand` and `zundo`.
 - 💾 **Local Workspace Saving**: Saves your working projects to IndexedDB so you can resume editing after closing the browser.
@@ -42,8 +44,7 @@ Because this application handles personal identification photos, it was architec
 1. **Absolute Data Privacy**: There is no backend API, no database, and no cloud storage. Images literally never leave the user's computer.
 2. **Local Storage (IndexedDB) Sandboxing**: User states and images are saved purely in the browser's IndexedDB. This data is strictly sandboxed by the browser and cannot be accessed by other websites.
 3. **Immunity to Traditional Hacks**: Because there is no backend server processing user data, the application is mathematically immune to SQL injections, Server-Side Request Forgery (SSRF), and massive data breaches.
-4. **XSS Protection**: Built on React 19, the UI naturally escapes DOM inputs, preventing Cross-Site Scripting.
-5. **Cross-Origin Isolation**: By running advanced AI models via `SharedArrayBuffer`, the required production hosting headers (`Cross-Origin-Opener-Policy` and `Cross-Origin-Embedder-Policy`) place the app in a highly restricted environment, neutralizing advanced side-channel attacks like Spectre.
+4. **Isolated Web Workers**: AI inferences run on dedicated background threads to prevent UI freezing and ensure memory safety.
 
 ## 🚀 Tech Stack
 
@@ -90,9 +91,8 @@ To build the application for production deployment:
 npm run build
 ```
 
-The optimized static files will be generated in the `dist` directory. Since this is a fully static client-side application, you can host the `dist` folder on Vercel, Netlify, GitHub Pages, or any standard web server.
-
-> **Note:** Because this application uses `SharedArrayBuffer` and WebAssembly for the heavy AI models, ensure your production hosting environment is configured to serve the correct cross-origin isolation headers if you experience memory constraints:
+The optimized static files will be generated in the `dist` directory. 
+> **Note:** Because this application uses WebAssembly for the heavy AI models, ensure your production hosting environment is configured to serve the correct cross-origin isolation headers if you experience memory constraints:
 > - `Cross-Origin-Opener-Policy: same-origin`
 > - `Cross-Origin-Embedder-Policy: require-corp`
 
@@ -102,13 +102,14 @@ The optimized static files will be generated in the `dist` directory. Since this
 src/
 ├── app/          # Core app providers (ThemeProvider, ErrorBoundary)
 ├── components/   # Reusable UI components (Buttons, Sliders, Modals)
-├── core/         # Heavy-lifting core logic (CanvasRenderer, ImageProcessor)
+├── core/         # Heavy-lifting core logic (CanvasRenderer, ExportService)
 ├── features/     # Feature-based domains (Workspace, TopNavigation, Panels)
 ├── hooks/        # Custom React hooks (useCanvas, useViewport)
-├── stores/       # Zustand state management and undo/redo history
+├── stores/       # Zustand state management and zundo history middleware
 ├── styles/       # Global CSS and Tailwind entry points
 ├── types/        # TypeScript interfaces and global type definitions
-└── utils/        # Helper functions (class merging, file conversions)
+├── utils/        # Helper functions (class merging, file conversions)
+└── workers/      # Dedicated Web Workers for ML models (bgRemoval, upscaler)
 ```
 
 ## 🤝 Contributing
