@@ -32,6 +32,10 @@ export class CanvasRenderer {
   private sourceImage: HTMLImageElement | null = null;
   private maskImage: OffscreenCanvas | HTMLImageElement | null = null;
   
+  // re-importing the mask when the change came from the eraser itself.
+  private maskVersion = 0;
+  private lastImportedMaskUrl: string | null = null;
+
   // Cache for pixel-processed image (sharpness, highlights, shadows)
   private processedCache: OffscreenCanvas | null = null;
   private lastEnhancementKey = '';
@@ -69,12 +73,20 @@ export class CanvasRenderer {
     }
   }
 
+  /**
+   * Import a mask from a data URL. Skips re-import if the URL matches
+   * the last one we exported (eraser brush stroke cycle).
+   */
   setMaskImage(maskDataUrl: string): Promise<void> {
+    // Skip re-import if this URL was just exported by the eraser
+    if (maskDataUrl === this.lastImportedMaskUrl && this.maskImage instanceof OffscreenCanvas) {
+      return Promise.resolve();
+    }
+
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.onload = async () => {
         try {
-          // Await full decode to prevent silent drawImage failures (flicker)
           if ('decode' in img) {
             await img.decode();
           }
@@ -91,6 +103,9 @@ export class CanvasRenderer {
         } else {
           this.maskImage = img; // Fallback
         }
+
+        this.lastImportedMaskUrl = maskDataUrl;
+        this.maskVersion = 0; // Reset version for fresh external mask
         
         this.markDirty();
         if (this.lastEditingState && this.lastOptions) {
@@ -136,6 +151,7 @@ export class CanvasRenderer {
     // Invalidate enhancement cache since mask changed
     this.processedCache = null;
     this.lastEnhancementKey = '';
+    this.maskVersion++;
     
     this.markDirty();
     if (this.lastEditingState && this.lastOptions) {
@@ -143,15 +159,22 @@ export class CanvasRenderer {
     }
   }
 
+  /**
+   * Export the current mask OffscreenCanvas as a data URL.
+   * Records the exported URL so setMaskImage() can skip re-importing it.
+   */
   async getMaskDataUrl(): Promise<string> {
     if (!this.maskImage || !(this.maskImage instanceof OffscreenCanvas)) return '';
     const blob = await this.maskImage.convertToBlob({ type: 'image/png' });
-    return new Promise((resolve, reject) => {
+    const dataUrl = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(reader.result as string);
       reader.onerror = () => reject(new Error('Failed to encode mask'));
       reader.readAsDataURL(blob);
     });
+    // Record this URL so setMaskImage won't re-import our own output
+    this.lastImportedMaskUrl = dataUrl;
+    return dataUrl;
   }
 
   // Rendering
