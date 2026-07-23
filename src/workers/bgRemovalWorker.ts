@@ -5,7 +5,7 @@ interface WorkerMessageData {
   type: 'REMOVE_BACKGROUND';
   payload: { 
     imageBlob: Blob;
-    modelVariant?: 'auto' | 'isnet_quint8' | 'isnet';
+    modelVariant?: 'isnet' | 'isnet_fp16' | 'isnet_quint8';
   };
 }
 
@@ -15,12 +15,20 @@ self.onmessage = async (event: MessageEvent<WorkerMessageData>) => {
   if (type === 'REMOVE_BACKGROUND') {
     try {
       const { imageBlob, modelVariant } = payload;
-      const targetModel = modelVariant === 'auto' ? 'isnet_fp16' : (modelVariant || 'isnet_fp16');
+      // Use full-precision 'isnet' model for dramatically better mask quality.
+      // isnet_fp16 (half-precision) is faster but produces noticeably worse edges
+      // on passport photos with complex hair/fur details.
+      const targetModel = modelVariant || 'isnet';
       
       const config: Config = {
         model: targetModel,
-        // Aggressive caching: tell the browser to skip Etag validation and use local disk cache immediately
-        fetchArgs: { cache: 'force-cache' },
+        // Use 'default' cache strategy — the library manages its own IndexedDB model cache.
+        // 'force-cache' can paradoxically cause re-downloads when browser cache is cold.
+        fetchArgs: { cache: 'default' },
+        output: {
+          quality: 1.0,
+          format: 'image/png',
+        },
         progress: (key, current, total) => {
           if (total > 0 && key.includes('compute')) {
             self.postMessage({

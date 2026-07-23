@@ -4,10 +4,10 @@ import { Button } from '@/components/ui/Button';
 import { CheckCircle, Wand2, Lock, AlertCircle, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 
-type ModelVariant = 'auto' | 'isnet_quint8' | 'isnet';
+type ModelVariant = 'isnet' | 'isnet_quint8' | 'isnet_fp16';
 
 export function BackgroundRemovalPanel() {
-  const [selectedModel, setSelectedModel] = useState<ModelVariant>('auto');
+  const [selectedModel, setSelectedModel] = useState<ModelVariant>('isnet');
   const { removeBackground, engineStatus } = useAI();
   const background = useEditorStore((s) => s.project?.editingState.background);
   const resetBackground = useEditorStore((s) => s.resetBackground);
@@ -99,24 +99,25 @@ export function BackgroundRemovalPanel() {
         )}
       </div>
 
+      {/* Model Quality Selector */}
+      <div className="space-y-2">
+        <label className="text-[13px] font-medium text-[var(--color-text-primary)]">
+          AI Model Quality
+        </label>
+        <select 
+          value={selectedModel}
+          onChange={(e) => setSelectedModel(e.target.value as ModelVariant)}
+          disabled={isButtonDisabled}
+          className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-md px-3 py-2 text-[13px] text-[var(--color-text-primary)] outline-none focus:border-[var(--color-primary)] transition-colors disabled:opacity-50"
+        >
+          <option value="isnet">Best Quality (IS-Net Full — Recommended)</option>
+          <option value="isnet_fp16">Balanced (IS-Net FP16 — Faster)</option>
+          <option value="isnet_quint8">Fast (IS-Net Quantized — Lightest)</option>
+        </select>
+      </div>
+
       {/* Tech details (Hidden on mobile to save space) */}
       <div className="hidden md:block space-y-4">
-        {/* Model Selector */}
-        <div className="space-y-2">
-          <label className="text-[13px] font-medium text-[var(--color-text-primary)]">
-            AI Model Quality
-          </label>
-          <select 
-            value={selectedModel}
-            onChange={(e) => setSelectedModel(e.target.value as ModelVariant)}
-            disabled={isButtonDisabled}
-            className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-md px-3 py-2 text-[13px] text-[var(--color-text)] outline-none focus:border-[var(--color-primary)] transition-colors disabled:opacity-50"
-          >
-            <option value="auto">Auto (Smart Detect - Recommended)</option>
-            <option value="isnet_quint8">Fast & Lightweight (IS-Net Quantized)</option>
-            <option value="isnet">Extreme Quality (IS-Net - Best overall)</option>
-          </select>
-        </div>
 
         <div className="space-y-2">
           {[

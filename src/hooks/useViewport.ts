@@ -41,10 +41,10 @@ export function useViewport() {
     viewportController.zoom_by(delta, focalX, focalY);
   }, []);
 
-  // Enable panning with left click drag to move the photo
+  // Enable panning with left click, middle click, or right click drag to move the photo
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    // Allow standard left-click or middle-click panning
-    if (e.button !== 0 && e.button !== 1) return;
+    // Allow left-click (0), middle-click (1), or right-click (2) panning
+    if (e.button !== 0 && e.button !== 1 && e.button !== 2) return;
     
     e.preventDefault(); 
     isPanning.current = true;

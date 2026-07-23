@@ -91,7 +91,7 @@ export const DEFAULT_ENHANCEMENT: EnhancementState = {
 
 export interface EraserState {
   size: number;
-  mode: 'erase' | 'restore';
+  mode: 'erase' | 'restore' | 'pan';
 }
 
 export interface EditingState {

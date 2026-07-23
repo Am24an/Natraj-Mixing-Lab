@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useState } from 'react';
+import { useEffect, useRef, useCallback, useState, useMemo } from 'react';
 import type { ActiveTool, Project } from '@/types';
 import { EmptyCanvas } from './EmptyCanvas';
 import { useViewport } from '@/hooks/useViewport';
@@ -70,6 +70,30 @@ function ImageCanvas({ project, activeTool }: ImageCanvasProps) {
   const [isHoveringImage, setIsHoveringImage] = useState(false);
   const eraserState = useEditorStore((s) => s.project?.editingState.eraser);
   const setBackgroundRemoved = useEditorStore((s) => s.setBackgroundRemoved);
+
+  // Space+Drag panning while in eraser mode
+  const isSpaceDown = useRef(false);
+  const [isPanningInEraser, setIsPanningInEraser] = useState(false);
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space' && isErasing) {
+        e.preventDefault();
+        isSpaceDown.current = true;
+      }
+    };
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        isSpaceDown.current = false;
+        setIsPanningInEraser(false);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+    };
+  }, [isErasing]);
 
   // Sync aspect / preset changes from the panel into the crop UI
   useEffect(() => {
@@ -152,12 +176,19 @@ function ImageCanvas({ project, activeTool }: ImageCanvasProps) {
     return { drawX, drawY, drawW, drawH };
   };
 
-  const imgBounds = isCropping ? getImageBounds() : null;
+  // Compute image bounds for crop overlay AND eraser hover detection
+  const imgBounds = (isCropping || isErasing) ? getImageBounds() : null;
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (isCropping) return;
     if (isErasing) {
-      if (e.button !== 0) return; // Only left click
+      // Middle-click (1), Right-click (2), Spacebar, or Pan mode -> start panning photo
+      if (e.button === 1 || e.button === 2 || isSpaceDown.current || eraserState?.mode === 'pan') {
+        setIsPanningInEraser(true);
+        canvasEvents.onMouseDown(e);
+        return;
+      }
+      if (e.button !== 0) return; // Only left click for drawing
       setIsDrawing(true);
       applyEraserStroke(e);
       return;
@@ -190,6 +221,13 @@ function ImageCanvas({ project, activeTool }: ImageCanvasProps) {
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (isCropping) return;
     if (isErasing) {
+      // Panning mode — delegate to viewport controller
+      if (isPanningInEraser) {
+        canvasEvents.onMouseMove(e);
+        return;
+      }
+
+      // Track whether mouse is over the image for cursor switching
       if (imgBounds) {
         const rect = containerRef.current?.getBoundingClientRect();
         if (rect) {
@@ -203,7 +241,7 @@ function ImageCanvas({ project, activeTool }: ImageCanvasProps) {
         }
       }
 
-      if (isDrawing) {
+      if (isDrawing && eraserState?.mode !== 'pan') {
         applyEraserStroke(e);
       }
       return;
@@ -214,6 +252,12 @@ function ImageCanvas({ project, activeTool }: ImageCanvasProps) {
   const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
     if (isCropping) return;
     if (isErasing) {
+      // End panning mode
+      if (isPanningInEraser) {
+        setIsPanningInEraser(false);
+        canvasEvents.onMouseUp();
+        return;
+      }
       if (isDrawing) {
         setIsDrawing(false);
         const renderer = rendererRef.current;
@@ -246,13 +290,12 @@ function ImageCanvas({ project, activeTool }: ImageCanvasProps) {
     return Math.max(4, brushDiameterPixels * fitScale);
   };
 
-  const getCursor = () => {
-    if (isCropping) return 'crosshair';
-    if (!isErasing || !eraserState || !project.originalImage) return 'grab';
-    if (!isHoveringImage) return 'grab';
+  // Memoize the SVG brush cursor to avoid expensive re-encoding on every render
+  const brushCursor = useMemo(() => {
+    if (!isErasing || !eraserState || eraserState.mode === 'pan' || !project.originalImage) return null;
     
     const container = containerRef.current;
-    if (!container) return 'crosshair';
+    if (!container) return null;
     
     const cw = container.clientWidth;
     const ch = container.clientHeight;
@@ -279,6 +322,15 @@ function ImageCanvas({ project, activeTool }: ImageCanvasProps) {
 
     const encoded = btoa(svg);
     return `url("data:image/svg+xml;base64,${encoded}") ${half} ${half}, crosshair`;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isErasing, eraserState?.size, eraserState?.mode, viewport.zoom, project.originalImage]);
+
+  const getCursor = () => {
+    if (isCropping) return 'crosshair';
+    if (!isErasing || !eraserState || !project.originalImage) return 'grab';
+    if (isSpaceDown.current || isPanningInEraser || eraserState.mode === 'pan') return 'grab';
+    if (!isHoveringImage) return 'grab';
+    return brushCursor ?? 'crosshair';
   };
 
   const previewDiam = (isErasing && showPreviewCircle) ? getBrushPreviewDiameter() : 0;
@@ -298,6 +350,7 @@ function ImageCanvas({ project, activeTool }: ImageCanvasProps) {
       onPointerUp={handlePointerUp}
       onPointerLeave={handlePointerUp}
       onPointerMove={handlePointerMove}
+      onContextMenu={(e) => e.preventDefault()}
     >
       {/* Brush Size Preview Overlay */}
       {isErasing && showPreviewCircle && eraserState && (

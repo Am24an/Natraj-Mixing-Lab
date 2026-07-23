@@ -478,51 +478,53 @@ canvas {
 
 /* Mobile Responsive Overrides */
 @media (max-width: 768px) {
+  :root {
+    --nav-height: 56px;
+  }
+  
   .workspace-grid {
-    grid-template-rows: var(--nav-height) auto auto auto;
-    grid-template-columns: 1fr;
-    height: auto;
-    min-height: 100dvh;
-    overflow-y: auto;
-    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    grid-template-rows: unset;
+    grid-template-columns: unset;
+    height: 100dvh;
+    overflow: hidden;
   }
 
   .mobile-nav {
-    grid-column: 1 !important;
-    grid-row: 1 !important;
+    flex-shrink: 0;
+    height: var(--nav-height);
   }
 
   .mobile-canvas {
-    grid-column: 1 !important;
-    grid-row: 2 !important;
-    height: 70vh !important;
-    min-height: 400px;
+    flex: 1 1 0;
+    min-height: 0; /* Critical: allows flex item to shrink below content size */
+    overflow: hidden;
+    order: 1;
   }
 
-  /* The panel sits naturally below the canvas */
+  /* The panel sits below the canvas as a scrollable section */
   .mobile-panel {
-    grid-column: 1 !important;
-    grid-row: 3 !important;
+    flex-shrink: 0;
     width: 100% !important;
-    height: auto !important;
-    max-height: none;
+    max-height: 35vh;
+    overflow-y: auto;
+    overflow-x: hidden;
     border-left: none !important;
     border-top: 1px solid var(--color-border);
-    align-self: auto;
-    z-index: 10;
     background: var(--color-surface);
-    box-shadow: none;
+    order: 2;
   }
 
-  /* The toolbar goes at the very bottom */
+  /* The toolbar goes at the very bottom as a horizontal strip */
   .mobile-toolbar {
-    grid-column: 1 !important;
-    grid-row: 4 !important;
+    flex-shrink: 0;
     width: 100% !important;
     height: auto !important;
     border-right: none !important;
     border-top: 1px solid var(--color-border);
     z-index: 20;
+    order: 3;
   }
 
   /* Override inline styles for toolbar children on mobile */
@@ -532,14 +534,17 @@ canvas {
     height: auto !important;
     overflow-x: auto !important;
     overflow-y: hidden !important;
-    padding: var(--space-sm) var(--space-md) !important;
+    padding: var(--space-xs) var(--space-sm) !important;
     justify-content: flex-start !important;
+    gap: 0 !important;
+    border-right: none !important;
   }
 
   .mobile-panel-inner {
     width: 100% !important;
     height: auto !important;
-    max-height: 50vh !important;
+    max-height: none !important;
+    border-left: none !important;
   }
 }
 
