@@ -196,11 +196,22 @@ export function TopNavigation({
 
         <Button
           variant="ghost"
-          size="sm"
+          size="icon"
           leftIcon={<FolderOpen size={15} strokeWidth={2} />}
           onClick={onOpenProjects}
           aria-label="Recent projects"
           id="nav-recent-projects"
+          className="md:hidden"
+        >
+          {/* icon-only on mobile */}
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          leftIcon={<FolderOpen size={15} strokeWidth={2} />}
+          onClick={onOpenProjects}
+          aria-label="Recent projects"
+          id="nav-recent-projects-desktop"
           className="hidden md:flex"
         >
           Projects
@@ -213,7 +224,6 @@ export function TopNavigation({
           aria-label="Settings"
           id="nav-settings"
           title="Settings"
-          className="hidden md:flex"
         >
           <Settings size={16} strokeWidth={2} />
         </Button>

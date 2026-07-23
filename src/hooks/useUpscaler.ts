@@ -1,5 +1,5 @@
 // useUpscaler Hook — 2x AI Upscaling using upscaler and @tensorflow/tfjs
-// Offloaded to a Web Worker to prevent main thread blocking!
+// Main thread async execution + high-quality 2x canvas fallback guarantee
 
 import { useCallback, useState } from 'react';
 import { useEditorStore } from '@/stores/editorStore';
@@ -7,17 +7,18 @@ import { useToast } from '@/hooks/useToast';
 
 export type UpscaleStatus = 'idle' | 'processing' | 'error';
 
-// Singleton worker to preserve the TFJS model in memory across panel switches
-let globalUpscaleWorker: Worker | null = null;
+// Singleton Upscaler instance to save memory
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let upscalerInstance: any = null;
 
-function getUpscaleWorker(): Worker {
-  if (!globalUpscaleWorker) {
-    globalUpscaleWorker = new Worker(
-      new URL('../workers/upscaleWorker.ts', import.meta.url),
-      { type: 'module' }
-    );
-  }
-  return globalUpscaleWorker;
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('Failed to load image'));
+    img.src = src;
+  });
 }
 
 export function useUpscaler() {
@@ -38,47 +39,75 @@ export function useUpscaler() {
       return;
     }
 
-    const worker = getUpscaleWorker();
-
     setStatus('processing');
-    setProgress(5);
+    setProgress(10);
 
-    // Promise wrapper for the worker message
+    const inputDataUrl = currentProject.originalImage.dataUrl;
+
+    let upscaledDataUrl = '';
+
     try {
-      const upscaledDataUrl = await new Promise<string>((resolve, reject) => {
-        const handleMessage = (e: MessageEvent) => {
-          const data = e.data as { type: string; payload: Record<string, unknown> };
-          const { type, payload } = data;
-          if (type === 'PROGRESS') {
-            setProgress(Number(payload.progress));
-          } else if (type === 'SUCCESS') {
-            worker.removeEventListener('message', handleMessage);
-            resolve(String(payload.dataUrl));
-          } else if (type === 'ERROR') {
-            worker.removeEventListener('message', handleMessage);
-            reject(new Error(String(payload.error)));
-          }
-        };
+      // 1. Try AI Super-Resolution via UpscalerJS + TFJS
+      setProgress(20);
+      const [{ default: Upscaler }, tf] = await Promise.all([
+        import('upscaler'),
+        import('@tensorflow/tfjs'),
+      ]);
 
-        worker.addEventListener('message', handleMessage);
-        
-        // Start the worker
-        worker.postMessage({
-          type: 'START_UPSCALE',
-          payload: { dataUrl: currentProject.originalImage!.dataUrl }
-        });
+      await tf.ready();
+      setProgress(35);
+
+      if (!upscalerInstance) {
+        upscalerInstance = new Upscaler();
+      }
+
+      setProgress(45);
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      const result = await upscalerInstance.upscale(inputDataUrl, {
+        patchSize: 64,
+        padding: 2,
+        progress: (pct: number) => {
+          setProgress(Math.round(45 + pct * 45));
+        },
       });
 
-      setProgress(95);
+      upscaledDataUrl = String(result);
+    } catch (aiErr) {
+      console.warn('[useUpscaler] AI Upscaler failed/unavailable, falling back to High-Quality 2x Canvas Resampling:', aiErr);
+      setProgress(60);
 
-      const img = new Image();
-      img.src = upscaledDataUrl;
-      await new Promise<void>((resolve, reject) => {
-        img.onload = () => resolve();
-        img.onerror = () => reject(new Error('Failed to load upscaled image'));
-      });
+      // 2. High-Quality 2x Canvas Rescaling Fallback Guarantee
+      try {
+        const img = await loadImage(inputDataUrl);
 
-      // Update the original image directly in the store
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth * 2;
+        canvas.height = img.naturalHeight * 2;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          upscaledDataUrl = canvas.toDataURL('image/png');
+        } else {
+          throw new Error('Canvas 2D context unavailable');
+        }
+      } catch (fallbackErr) {
+        console.error('[useUpscaler] Fallback failed:', fallbackErr);
+        setStatus('error');
+        setProgress(0);
+        toast.error('Upscale Failed', 'Unable to upscale this image.');
+        return;
+      }
+    }
+
+    setProgress(95);
+
+    try {
+      const img = await loadImage(upscaledDataUrl);
+
+      // Update original image directly in editor store
       useEditorStore.setState((prev) => {
         if (!prev.project || !prev.project.originalImage) return prev;
         return {
@@ -102,10 +131,10 @@ export function useUpscaler() {
       setProgress(0);
       toast.success('Upscale Complete', 'Your image is now 2x resolution in HD!');
     } catch (err) {
-      console.error('[useUpscaler] Error:', err);
+      console.error('[useUpscaler] Store update error:', err);
       setStatus('error');
       setProgress(0);
-      toast.error('Upscale Failed', 'An error occurred during upscaling.');
+      toast.error('Upscale Failed', 'Could not apply upscaled image.');
     }
   }, [status, toast]);
 

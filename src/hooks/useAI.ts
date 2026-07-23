@@ -8,8 +8,24 @@ import { useToast } from '@/hooks/useToast';
 
 export type AIEngineStatus = 'idle' | 'ready' | 'processing' | 'error';
 
-// Singleton worker instance to keep models cached in memory
+// Eagerly create the singleton worker on module load.
+// This pre-warms the model cache: the browser starts downloading/caching the
+// WASM model files in the background as soon as the app opens, so by the time
+// the user clicks "Remove Background" the model is already warm.
 let bgWorker: Worker | null = null;
+function getOrCreateWorker(): Worker {
+  if (!bgWorker) {
+    bgWorker = new Worker(new URL('../workers/bgRemovalWorker.ts', import.meta.url), {
+      type: 'module',
+    });
+  }
+  return bgWorker;
+}
+// Pre-warm on module import (lazy — only runs when useAI is first imported)
+if (typeof window !== 'undefined') {
+  getOrCreateWorker();
+}
+
 let jobIdCounter = 0;
 
 type WorkerResponseData = 
@@ -25,7 +41,7 @@ export function useAI() {
   const setBackgroundRemoved = useEditorStore((s) => s.setBackgroundRemoved);
   const setBackgroundError = useEditorStore((s) => s.setBackgroundError);
 
-  const removeBackground = useCallback(async (modelVariant?: 'auto' | 'isnet_quint8' | 'isnet') => {
+  const removeBackground = useCallback(async (modelVariant?: 'isnet' | 'isnet_fp16' | 'isnet_quint8') => {
     const currentProject = useEditorStore.getState().project;
 
     if (!currentProject?.originalImage) {
@@ -42,14 +58,10 @@ export function useAI() {
       setEngineStatus('processing');
       setBackgroundProcessing(true, 10);
 
-      // Initialize the worker once
-      if (!bgWorker) {
-        bgWorker = new Worker(new URL('../workers/bgRemovalWorker.ts', import.meta.url), {
-          type: 'module',
-        });
-      }
-
       setBackgroundProcessing(true, 20);
+
+      // Use the pre-warmed worker singleton
+      const worker = getOrCreateWorker();
 
       // Use the original File object if available (faster — no re-encoding),
       // else fall back to creating a blob from the dataUrl
@@ -65,8 +77,8 @@ export function useAI() {
 
       const resultBlob = await new Promise<Blob>((resolve, reject) => {
         const handleError = (error: ErrorEvent) => {
-          bgWorker?.removeEventListener('message', handleMessage);
-          bgWorker?.removeEventListener('error', handleError);
+          worker.removeEventListener('message', handleMessage);
+          worker.removeEventListener('error', handleError);
           reject(new Error(error.message || 'Worker failed'));
         };
 
@@ -85,21 +97,21 @@ export function useAI() {
               }
             }
           } else if (data.type === 'SUCCESS') {
-            bgWorker?.removeEventListener('message', handleMessage);
-            bgWorker?.removeEventListener('error', handleError);
+            worker.removeEventListener('message', handleMessage);
+            worker.removeEventListener('error', handleError);
             resolve(data.payload.resultBlob);
           } else if (data.type === 'ERROR') {
-            bgWorker?.removeEventListener('message', handleMessage);
-            bgWorker?.removeEventListener('error', handleError);
+            worker.removeEventListener('message', handleMessage);
+            worker.removeEventListener('error', handleError);
             reject(new Error(data.payload.error));
           }
         };
 
-        bgWorker!.addEventListener('message', handleMessage);
-        bgWorker!.addEventListener('error', handleError);
+        worker.addEventListener('message', handleMessage);
+        worker.addEventListener('error', handleError);
         
         // Post the blob to the worker
-        bgWorker!.postMessage({
+        worker.postMessage({
           id: jobId,
           type: 'REMOVE_BACKGROUND',
           payload: { imageBlob: inputBlob, modelVariant }

@@ -3,6 +3,16 @@ import { ImageProcessor } from './ImageProcessor';
 
 export type ExportFormat = 'jpeg' | 'png' | 'webp';
 
+function loadImage(dataUrl: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('Failed to load image for export'));
+    img.src = dataUrl;
+  });
+}
+
 export class ExportService {
   /**
    * Generates a composited image from a project state and triggers a browser download.
@@ -14,19 +24,10 @@ export class ExportService {
     if (!project.originalImage) throw new Error('No original image found in project');
 
     // 1. Load Original Source
-    const src = new Image();
-    src.src = project.originalImage.dataUrl;
-    if ('decode' in src) {
-      await src.decode();
-    } else {
-      await new Promise<void>((res, rej) => {
-        (src as HTMLImageElement).onload = () => res();
-        (src as HTMLImageElement).onerror = () => rej(new Error('Failed to load source image'));
-      });
-    }
+    const src = await loadImage(project.originalImage.dataUrl);
 
-    const origW = src.naturalWidth;
-    const origH = src.naturalHeight;
+    const origW = src.naturalWidth || project.originalImage.dimensions.width;
+    const origH = src.naturalHeight || project.originalImage.dimensions.height;
 
     // 2. Calculate crop bounds exactly
     const cx = crop.width === 0 ? 0 : (crop.x / 100) * origW;
@@ -42,9 +43,12 @@ export class ExportService {
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('Failed to get canvas context');
 
-    // Background color
-    if (background.replacementColor) {
-      ctx.fillStyle = background.replacementColor;
+    // For JPEG format (which does not support alpha transparency), default to white background if none set
+    const effectiveBgColor = background.replacementColor || (format === 'jpeg' ? '#FFFFFF' : null);
+
+    // Fill background color
+    if (effectiveBgColor) {
+      ctx.fillStyle = effectiveBgColor;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
 
@@ -69,24 +73,21 @@ export class ExportService {
       // Clear and redraw using the result PNG
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      if (background.replacementColor) {
-        ctx.fillStyle = background.replacementColor;
+      if (effectiveBgColor) {
+        ctx.fillStyle = effectiveBgColor;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
       }
 
-      const resultImg = new Image();
-      resultImg.src = background.maskDataUrl;
-      if ('decode' in resultImg) {
-        await resultImg.decode();
-      } else {
-        await new Promise<void>((res) => { (resultImg as HTMLImageElement).onload = () => res(); });
-      }
+      const resultImg = await loadImage(background.maskDataUrl);
+
+      const mw = resultImg.naturalWidth || origW;
+      const mh = resultImg.naturalHeight || origH;
 
       // Crop bounds specifically for the mask image
-      const maskCx = (crop.width === 0 ? 0 : crop.x / 100) * resultImg.naturalWidth;
-      const maskCy = (crop.height === 0 ? 0 : crop.y / 100) * resultImg.naturalHeight;
-      const maskCw = (crop.width === 0 ? resultImg.naturalWidth : (crop.width / 100) * resultImg.naturalWidth);
-      const maskCh = (crop.height === 0 ? resultImg.naturalHeight : (crop.height / 100) * resultImg.naturalHeight);
+      const maskCx = (crop.width === 0 ? 0 : crop.x / 100) * mw;
+      const maskCy = (crop.height === 0 ? 0 : crop.y / 100) * mh;
+      const maskCw = (crop.width === 0 ? mw : (crop.width / 100) * mw);
+      const maskCh = (crop.height === 0 ? mh : (crop.height / 100) * mh);
 
       if (filters.length > 0) ctx.filter = filters.join(' ');
       ctx.save();

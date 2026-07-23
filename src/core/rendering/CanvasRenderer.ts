@@ -109,8 +109,8 @@ export class CanvasRenderer {
   }
 
   
-  applyBrushStroke(imgX: number, imgY: number, radius: number, mode: 'erase' | 'restore'): void {
-    if (!this.maskImage || !this.sourceImage) return;
+  applyBrushStroke(imgX: number, imgY: number, radius: number, mode: 'erase' | 'restore' | 'pan'): void {
+    if (mode === 'pan' || !this.maskImage || !this.sourceImage) return;
     
     // Only works if maskImage is an OffscreenCanvas
     if (!(this.maskImage instanceof OffscreenCanvas)) return;
