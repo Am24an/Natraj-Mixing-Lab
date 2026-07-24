@@ -35,11 +35,17 @@ export class ExportService {
     const cw = crop.width === 0 ? origW : (crop.width / 100) * origW;
     const ch = crop.height === 0 ? origH : (crop.height / 100) * origH;
 
-    // 3. Create canvas
+    // 3. Create canvas with exact bounding box for any rotation angle
+    const rad = (crop.rotation * Math.PI) / 180;
+    const cos = Math.abs(Math.cos(rad));
+    const sin = Math.abs(Math.sin(rad));
+
+    const exportW = Math.round(cw * cos + ch * sin);
+    const exportH = Math.round(cw * sin + ch * cos);
+
     const canvas = document.createElement('canvas');
-    const isRotated = crop.rotation % 180 !== 0;
-    canvas.width = Math.round(isRotated ? ch : cw);
-    canvas.height = Math.round(isRotated ? cw : ch);
+    canvas.width = Math.max(1, exportW);
+    canvas.height = Math.max(1, exportH);
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('Failed to get canvas context');
 

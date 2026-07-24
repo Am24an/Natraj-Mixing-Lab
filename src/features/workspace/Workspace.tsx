@@ -5,6 +5,8 @@ import { LeftToolbar } from './LeftToolbar';
 import { EditingCanvas } from './EditingCanvas';
 import { RightPanel } from './RightPanel';
 import { useStorage } from '@/hooks/useStorage';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { useWorkflowMemory } from '@/hooks/useWorkflowMemory';
 import type { DialogType, StoredProject } from '@/types';
 
 // Dialogs are code-split — loaded only when first opened (lazy per SDEP)
@@ -44,6 +46,15 @@ export function Workspace() {
 
   // Mount storage layer — handles auto-save, preferences persistence
   const { saveManually, loadAllProjects, deleteProject } = useStorage();
+
+  // Global keyboard shortcuts
+  useKeyboardShortcuts({
+    onSave: saveManually,
+    onExport: () => setActiveDialog('export'),
+  });
+
+  // Workflow memory — learns from user patterns across sessions
+  useWorkflowMemory();
 
   return (
     <div

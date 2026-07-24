@@ -10,7 +10,7 @@ import { useEffect, useCallback, useRef } from 'react';
 import { storageEngine } from '@/core/storage/StorageEngine';
 import { useEditorStore } from '@/stores/editorStore';
 import { useToast } from '@/hooks/useToast';
-import type { StoredProject } from '@/types';
+import { DEFAULT_WORKFLOW_MEMORY, type StoredProject } from '@/types';
 
 const AUTO_SAVE_DELAY_MS = 3000; // 3 seconds debounce
 
@@ -27,7 +27,17 @@ export function useStorage() {
     storageEngine
       .getPreference<typeof preferences>('user-preferences')
       .then((saved) => {
-        if (saved) updatePreferences(saved);
+        if (saved) {
+          // Migration guard: merge workflowMemory defaults for old saved prefs
+          const migrated = {
+            ...saved,
+            workflowMemory: {
+              ...DEFAULT_WORKFLOW_MEMORY,
+              ...(saved.workflowMemory ?? {}),
+            },
+          };
+          updatePreferences(migrated);
+        }
       })
       .catch((err) => console.warn('[useStorage] Failed to load preferences:', err))
       .finally(() => {

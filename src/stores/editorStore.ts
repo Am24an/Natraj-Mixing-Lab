@@ -14,6 +14,7 @@ import {
   type ProcessingState,
   type ToastMessage,
   type UserPreferences,
+  type WorkflowMemory,
   DEFAULT_ENHANCEMENT,
   DEFAULT_PREFERENCES,
 } from '@/types';
@@ -108,6 +109,7 @@ interface EditorStore {
   // Preference Actions
   updatePreferences: (prefs: Partial<UserPreferences>) => void;
   addRecentBackgroundColor: (color: string) => void;
+  updateWorkflowMemory: (delta: Partial<WorkflowMemory>) => void;
 }
 
 export const useEditorStore = create<EditorStore>()(
@@ -431,12 +433,32 @@ export const useEditorStore = create<EditorStore>()(
               return {
                 preferences: {
                   ...prev.preferences,
-                  recentBackgroundColors: [color, ...filtered].slice(0, 5)
+                  recentBackgroundColors: [color, ...filtered].slice(0, 5),
+                  workflowMemory: {
+                    ...prev.preferences.workflowMemory,
+                    lastBackgroundColor: color,
+                  },
                 }
               };
             },
             false,
             'addRecentBackgroundColor'
+          );
+        },
+
+        updateWorkflowMemory: (delta: Partial<WorkflowMemory>) => {
+          set(
+            (prev: EditorStore) => ({
+              preferences: {
+                ...prev.preferences,
+                workflowMemory: {
+                  ...prev.preferences.workflowMemory,
+                  ...delta,
+                },
+              },
+            }),
+            false,
+            'updateWorkflowMemory'
           );
         },
       }),

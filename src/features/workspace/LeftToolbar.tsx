@@ -16,17 +16,18 @@ import {
 interface ToolItem {
   id: ActiveTool;
   label: string;
+  shortcut: string;
   icon: React.ReactNode;
   requiresProject: boolean;
 }
 
 const TOOLS: ToolItem[] = [
-  { id: 'crop', label: 'Crop', icon: <Crop size={20} strokeWidth={1.75} />, requiresProject: true },
-  { id: 'background-removal', label: 'Remove BG', icon: <Eraser size={20} strokeWidth={1.75} />, requiresProject: true },
-  { id: 'eraser', label: 'Mask Brush', icon: <Paintbrush size={20} strokeWidth={1.75} />, requiresProject: true },
-  { id: 'background-color', label: 'BG Color', icon: <Palette size={20} strokeWidth={1.75} />, requiresProject: true },
-  { id: 'enhancement', label: 'Enhance', icon: <Sliders size={20} strokeWidth={1.75} />, requiresProject: true },
-  { id: 'upscale', label: 'Upscale', icon: <Sparkles size={20} strokeWidth={1.75} />, requiresProject: true },
+  { id: 'crop', label: 'Crop', shortcut: 'C', icon: <Crop size={20} strokeWidth={1.75} />, requiresProject: true },
+  { id: 'background-removal', label: 'Remove BG', shortcut: 'B', icon: <Eraser size={20} strokeWidth={1.75} />, requiresProject: true },
+  { id: 'eraser', label: 'Mask Brush', shortcut: 'M', icon: <Paintbrush size={20} strokeWidth={1.75} />, requiresProject: true },
+  { id: 'background-color', label: 'BG Color', shortcut: 'K', icon: <Palette size={20} strokeWidth={1.75} />, requiresProject: true },
+  { id: 'enhancement', label: 'Enhance', shortcut: 'N', icon: <Sliders size={20} strokeWidth={1.75} />, requiresProject: true },
+  { id: 'upscale', label: 'Upscale', shortcut: 'U', icon: <Sparkles size={20} strokeWidth={1.75} />, requiresProject: true },
 ];
 
 interface LeftToolbarProps {
@@ -121,6 +122,7 @@ function ToolButton({ tool, isActive, isDisabled, onClick }: ToolButtonProps) {
       style={{
         width: '100%',
         padding: '0 var(--space-xs)',
+        position: 'relative',
       }}
     >
       <button
@@ -128,8 +130,8 @@ function ToolButton({ tool, isActive, isDisabled, onClick }: ToolButtonProps) {
         onClick={onClick}
         disabled={isDisabled}
         aria-pressed={isActive}
-        aria-label={tool.label}
-        title={tool.label}
+        aria-label={`${tool.label} (${tool.shortcut})`}
+        title={`${tool.label}  [${tool.shortcut}]`}
         style={{
           width: '100%',
           height: '56px',
@@ -149,6 +151,7 @@ function ToolButton({ tool, isActive, isDisabled, onClick }: ToolButtonProps) {
               : 'var(--color-text-muted)',
           opacity: isDisabled ? 0.4 : 1,
           transition: `background var(--duration-hover) var(--easing-out), color var(--duration-hover) var(--easing-out)`,
+          position: 'relative',
         }}
         onMouseEnter={(e) => {
           if (!isDisabled && !isActive) {
@@ -168,6 +171,26 @@ function ToolButton({ tool, isActive, isDisabled, onClick }: ToolButtonProps) {
       >
         {tool.icon}
         <span style={{ fontSize: '10px', fontWeight: 500, lineHeight: 1 }}>{tool.label}</span>
+        {/* Keyboard shortcut badge */}
+        <span
+          style={{
+            position: 'absolute',
+            top: '4px',
+            right: '4px',
+            fontSize: '9px',
+            fontWeight: 600,
+            lineHeight: 1,
+            padding: '1px 3px',
+            borderRadius: '3px',
+            background: isActive ? 'var(--color-primary)' : 'var(--color-border)',
+            color: isActive ? '#fff' : 'var(--color-text-muted)',
+            letterSpacing: '0',
+            opacity: isDisabled ? 0.5 : 0.75,
+            fontFamily: 'monospace',
+          }}
+        >
+          {tool.shortcut}
+        </span>
       </button>
     </div>
   );

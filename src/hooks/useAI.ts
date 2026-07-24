@@ -5,6 +5,9 @@
 import { useCallback, useState } from 'react';
 import { useEditorStore } from '@/stores/editorStore';
 import { useToast } from '@/hooks/useToast';
+import { analyzeMaskQuality } from '@/core/processing/MaskQualityAnalyzer';
+import { EdgeRefinementEngine } from '@/core/processing/EdgeRefinementEngine';
+import type { BgRemovalQuality } from '@/types';
 
 export type AIEngineStatus = 'idle' | 'ready' | 'processing' | 'error';
 
@@ -118,19 +121,77 @@ export function useAI() {
         });
       });
 
-      setBackgroundProcessing(true, 95);
+      setBackgroundProcessing(true, 92);
 
-      // Convert to dataUrl for storage and canvas rendering
-      const resultDataUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = () => reject(new Error('Failed to read result blob'));
-        reader.readAsDataURL(resultBlob);
-      });
+      // ── Edge Refinement & Spill Suppression Pass ──────────────────────────
+      // Refines raw AI mask using original image contrast to remove color halos
+      let resultDataUrl = '';
+      try {
+        resultDataUrl = await EdgeRefinementEngine.refineMask(
+          currentProject.originalImage.dataUrl,
+          resultBlob,
+          { contrastSensitivity: 1.0, spillSuppression: 80, featherRadius: 1 }
+        );
+      } catch (refineErr) {
+        console.warn('[useAI] Edge refinement pass skipped, using raw mask:', refineErr);
+        resultDataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = () => reject(new Error('Failed to read result blob'));
+          reader.readAsDataURL(resultBlob);
+        });
+      }
 
+      setBackgroundProcessing(true, 100);
       setBackgroundRemoved(resultDataUrl);
       setEngineStatus('ready');
-      toast.success('Background removed!', 'Subject extracted cleanly.');
+      toast.success('Background removed!', 'Subject extracted cleanly with edge refinement.');
+
+      // ── Async quality analysis (non-blocking) ────────────────────────────
+      // Runs after the mask is shown so the user doesn't wait.
+      void (async () => {
+        try {
+          const quality = await analyzeMaskQuality(resultDataUrl);
+
+          // Record in workflow memory
+          const prev = useEditorStore.getState().preferences.workflowMemory;
+          const history = [
+            ...(prev?.bgRemovalHistory ?? []),
+            {
+              timestamp: Date.now(),
+              qualityScore: quality.qualityScore,
+              transparencyPct: quality.transparencyPct,
+              neededManualCleanup: false, // updated later when user uses Mask Brush
+              brushStrokesAfter: 0,
+            } satisfies BgRemovalQuality,
+          ].slice(-10); // keep last 10 only
+
+          const avgScore = history.length > 0
+            ? Math.round(history.reduce((s, h) => s + h.qualityScore, 0) / history.length)
+            : quality.qualityScore;
+
+          useEditorStore.getState().updateWorkflowMemory({
+            bgRemovalHistory: history,
+            avgBgQualityScore: avgScore,
+            currentSessionBrushStrokes: 0, // reset counter for this new removal
+          });
+
+          // Show smart contextual suggestion if quality is below threshold
+          if (quality.suggestMaskBrush) {
+            const gradeMsg =
+              quality.grade === 'Fair'
+                ? `Edge quality: ${quality.grade} (${quality.qualityScore}/100). Some residue detected.`
+                : `Edge quality: ${quality.grade} (${quality.qualityScore}/100). Manual cleanup recommended.`;
+
+            toast.warning(
+              '✏️ Mask Brush suggested',
+              `${gradeMsg} Switch to Mask Brush (M) to refine edges.`
+            );
+          }
+        } catch {
+          // Quality analysis is best-effort — never block the main workflow
+        }
+      })();
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Unknown error';
       setEngineStatus('error');

@@ -70,6 +70,11 @@ export function useCanvas() {
     const img = new Image();
     img.onload = () => {
       renderer.setSourceImage(img);
+      const state = useEditorStore.getState();
+      if (state.project?.editingState) {
+        const { zoom, panX, panY } = viewportController.getState();
+        renderer.render(state.project.editingState, { showCheckerboard: true, zoom, panX, panY });
+      }
     };
     img.onerror = () => {
       console.error('[useCanvas] Failed to load image for canvas rendering');

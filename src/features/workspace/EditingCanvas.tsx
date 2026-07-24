@@ -68,6 +68,7 @@ function ImageCanvas({ project, activeTool }: ImageCanvasProps) {
   // Eraser drawing state
   const [isDrawing, setIsDrawing] = useState(false);
   const [isHoveringImage, setIsHoveringImage] = useState(false);
+  const [mousePos, setMousePos] = useState({ x: -9999, y: -9999 });
   const eraserState = useEditorStore((s) => s.project?.editingState.eraser);
   const setBackgroundRemoved = useEditorStore((s) => s.setBackgroundRemoved);
 
@@ -117,23 +118,7 @@ function ImageCanvas({ project, activeTool }: ImageCanvasProps) {
     }
   }, [updateCrop]);
 
-  // Brush preview state
-  const [showPreviewCircle, setShowPreviewCircle] = useState(false);
-  const eraserSize = eraserState?.size;
-  const prevSize = useRef(eraserSize);
-
-  useEffect(() => {
-    if (!isErasing || !eraserSize || isDrawing) return;
-    
-    // Trigger preview overlay if size changes
-    if (prevSize.current !== eraserSize) {
-      prevSize.current = eraserSize;
-      setShowPreviewCircle(true);
-      const timeout = setTimeout(() => setShowPreviewCircle(false), 800);
-      return () => clearTimeout(timeout);
-    }
-    return undefined;
-  }, [eraserSize, isErasing, isDrawing]);
+  // No separate preview state needed — overlay follows mouse directly
 
   // Attach non-passive wheel listener
   useEffect(() => {
@@ -182,6 +167,22 @@ function ImageCanvas({ project, activeTool }: ImageCanvasProps) {
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (isCropping) return;
     if (isErasing) {
+      // Track mouse position on pointer down
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (rect) {
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+        setMousePos({ x: mouseX, y: mouseY });
+
+        if (imgBounds) {
+          const isInside = mouseX >= imgBounds.drawX && mouseX <= imgBounds.drawX + imgBounds.drawW &&
+                           mouseY >= imgBounds.drawY && mouseY <= imgBounds.drawY + imgBounds.drawH;
+          if (isInside !== isHoveringImage) {
+            setIsHoveringImage(isInside);
+          }
+        }
+      }
+
       // Middle-click (1), Right-click (2), Spacebar, or Pan mode -> start panning photo
       if (e.button === 1 || e.button === 2 || isSpaceDown.current || eraserState?.mode === 'pan') {
         setIsPanningInEraser(true);
@@ -227,12 +228,15 @@ function ImageCanvas({ project, activeTool }: ImageCanvasProps) {
         return;
       }
 
-      // Track whether mouse is over the image for cursor switching
-      if (imgBounds) {
-        const rect = containerRef.current?.getBoundingClientRect();
-        if (rect) {
-          const mouseX = e.clientX - rect.left;
-          const mouseY = e.clientY - rect.top;
+      // Track mouse position for brush overlay
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (rect) {
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+        setMousePos({ x: mouseX, y: mouseY });
+
+        // Track whether mouse is over the image
+        if (imgBounds) {
           const isInside = mouseX >= imgBounds.drawX && mouseX <= imgBounds.drawX + imgBounds.drawW &&
                            mouseY >= imgBounds.drawY && mouseY <= imgBounds.drawY + imgBounds.drawH;
           if (isInside !== isHoveringImage) {
@@ -275,65 +279,38 @@ function ImageCanvas({ project, activeTool }: ImageCanvasProps) {
     canvasEvents.onMouseUp();
   };
 
-  const getBrushPreviewDiameter = () => {
-    if (!project.originalImage || !eraserState) return 0;
+  // Compute screen-space brush diameter for the overlay
+  const brushScreenDiameter = useMemo(() => {
+    if (!isErasing || !eraserState || !project.originalImage) return 0;
     const container = containerRef.current;
     if (!container) return 0;
-    
     const cw = container.clientWidth;
     const ch = container.clientHeight;
     const iw = project.originalImage.dimensions.width;
     const ih = project.originalImage.dimensions.height;
-    
     const fitScale = Math.min(cw / iw, ch / ih) * viewport.zoom;
-    const brushDiameterPixels = eraserState.size * 2;
-    return Math.max(4, brushDiameterPixels * fitScale);
-  };
-
-  // Memoize the SVG brush cursor to avoid expensive re-encoding on every render
-  const brushCursor = useMemo(() => {
-    if (!isErasing || !eraserState || eraserState.mode === 'pan' || !project.originalImage) return null;
-    
-    const container = containerRef.current;
-    if (!container) return null;
-    
-    const cw = container.clientWidth;
-    const ch = container.clientHeight;
-    const iw = project.originalImage.dimensions.width;
-    const ih = project.originalImage.dimensions.height;
-    
-    const fitScale = Math.min(cw / iw, ch / ih) * viewport.zoom;
-    const brushDiameterPixels = eraserState.size * 2; // size is radius
-    const screenDiameter = Math.max(4, brushDiameterPixels * fitScale);
-    const half = screenDiameter / 2;
-    
-    const isEraseMode = eraserState.mode === 'erase';
-    const strokeColor = isEraseMode ? 'rgba(255, 0, 0, 0.8)' : 'rgba(0, 255, 0, 0.8)';
-    const fillColor = isEraseMode ? 'rgba(255, 0, 0, 0.15)' : 'rgba(0, 255, 0, 0.15)';
-    
-    const svg = `
-      <svg width="${screenDiameter}" height="${screenDiameter}" viewBox="0 0 ${screenDiameter} ${screenDiameter}" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="${half}" cy="${half}" r="${Math.max(1, half - 1)}" fill="${fillColor}" stroke="white" stroke-width="1.5" />
-        <circle cx="${half}" cy="${half}" r="${Math.max(1, half - 1)}" fill="none" stroke="${strokeColor}" stroke-width="1.5" stroke-dasharray="2,2" />
-        <line x1="${half}" y1="${half - 3}" x2="${half}" y2="${half + 3}" stroke="black" stroke-width="1" />
-        <line x1="${half - 3}" y1="${half}" x2="${half + 3}" y2="${half}" stroke="black" stroke-width="1" />
-      </svg>
-    `.replace(/\s+/g, ' ').trim();
-
-    const encoded = btoa(svg);
-    return `url("data:image/svg+xml;base64,${encoded}") ${half} ${half}, crosshair`;
+    return Math.max(4, eraserState.size * 2 * fitScale);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isErasing, eraserState?.size, eraserState?.mode, viewport.zoom, project.originalImage]);
+  }, [isErasing, eraserState?.size, viewport.zoom, project.originalImage]);
 
   const getCursor = () => {
     if (isCropping) return 'crosshair';
     if (!isErasing || !eraserState || !project.originalImage) return 'grab';
     if (isSpaceDown.current || isPanningInEraser || eraserState.mode === 'pan') return 'grab';
-    if (!isHoveringImage) return 'grab';
-    return brushCursor ?? 'crosshair';
+    // Hide native cursor when showing our custom brush overlay
+    if (isHoveringImage) return 'none';
+    return 'grab';
   };
 
-  const previewDiam = (isErasing && showPreviewCircle) ? getBrushPreviewDiameter() : 0;
+  const showBrushOverlay =
+    isErasing && isHoveringImage && eraserState?.mode !== 'pan' &&
+    !isSpaceDown.current && !isPanningInEraser;
+
+  const handlePointerLeave = (e: React.PointerEvent<HTMLDivElement>) => {
+    setIsHoveringImage(false);
+    setMousePos({ x: -9999, y: -9999 });
+    handlePointerUp(e);
+  };
 
   return (
     <div
@@ -348,27 +325,26 @@ function ImageCanvas({ project, activeTool }: ImageCanvasProps) {
       }}
       onPointerDown={handlePointerDown}
       onPointerUp={handlePointerUp}
-      onPointerLeave={handlePointerUp}
+      onPointerLeave={handlePointerLeave}
       onPointerMove={handlePointerMove}
       onContextMenu={(e) => e.preventDefault()}
     >
-      {/* Brush Size Preview Overlay */}
-      {isErasing && showPreviewCircle && eraserState && (
+      {/* Live Brush Cursor Overlay — follows mouse when hovering */}
+      {showBrushOverlay && eraserState && (
         <div
           style={{
             position: 'absolute',
-            left: '50%',
-            top: '50%',
+            left: mousePos.x,
+            top: mousePos.y,
             transform: 'translate(-50%, -50%)',
             pointerEvents: 'none',
             zIndex: 50,
-            width: previewDiam,
-            height: previewDiam,
+            width: brushScreenDiameter,
+            height: brushScreenDiameter,
             borderRadius: '50%',
-            border: `1.5px dashed ${eraserState.mode === 'erase' ? 'rgba(255, 0, 0, 0.8)' : 'rgba(0, 255, 0, 0.8)'}`,
-            backgroundColor: eraserState.mode === 'erase' ? 'rgba(255, 0, 0, 0.15)' : 'rgba(0, 255, 0, 0.15)',
-            boxShadow: '0 0 0 1.5px white',
-            transition: 'width 0.1s, height 0.1s, opacity 0.2s',
+            border: `2px solid ${eraserState.mode === 'erase' ? 'rgba(255,50,50,0.9)' : 'rgba(50,220,50,0.9)'}`,
+            backgroundColor: eraserState.mode === 'erase' ? 'rgba(255,0,0,0.1)' : 'rgba(0,255,0,0.1)',
+            boxShadow: `0 0 0 1.5px white, 0 0 0 3px ${eraserState.mode === 'erase' ? 'rgba(255,0,0,0.3)' : 'rgba(0,255,0,0.3)'}`,
           }}
         />
       )}
