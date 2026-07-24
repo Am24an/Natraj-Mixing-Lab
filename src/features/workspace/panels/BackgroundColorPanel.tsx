@@ -1,7 +1,7 @@
 import { useEditorStore, usePreferences } from '@/stores/editorStore';
 import { PASSPORT_COLOR_PRESETS } from '@/types';
 import { cn } from '@/utils/cn';
-import { useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { Eraser } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
@@ -12,14 +12,39 @@ export function BackgroundColorPanel() {
   const preferences = usePreferences();
   const colorInputRef = useRef<HTMLInputElement>(null);
 
-  if (!background) return null;
-
-  const currentColor = background.replacementColor ?? '#FFFFFF';
+  const currentColor = background?.replacementColor ?? '#FFFFFF';
   const recentColors = preferences?.recentBackgroundColors || [];
+
+  const [hexInput, setHexInput] = useState(currentColor);
+
+  useEffect(() => {
+    setHexInput(currentColor);
+  }, [currentColor]);
+
+  if (!background) return null;
 
   const handleColorChange = (color: string) => {
     setBackgroundColor(color);
     addRecentBackgroundColor(color);
+  };
+
+  const handleHexInputChange = (v: string) => {
+    let formatted = v;
+    if (!formatted.startsWith('#') && formatted.length > 0) {
+      formatted = '#' + formatted;
+    }
+    if (/^#[0-9A-Fa-f]{0,6}$/.test(formatted)) {
+      setHexInput(formatted);
+      if (/^#[0-9A-Fa-f]{6}$/.test(formatted)) {
+        handleColorChange(formatted);
+      }
+    }
+  };
+
+  const handleHexInputBlur = () => {
+    if (!/^#[0-9A-Fa-f]{6}$/.test(hexInput)) {
+      setHexInput(currentColor);
+    }
   };
 
   return (
@@ -64,13 +89,9 @@ export function BackgroundColorPanel() {
             
             <input
               type="text"
-              value={currentColor.toUpperCase()}
-              onChange={(e) => {
-                const v = e.target.value;
-                if (/^#[0-9A-Fa-f]{0,6}$/.test(v)) {
-                  if (/^#[0-9A-Fa-f]{6}$/.test(v)) handleColorChange(v);
-                }
-              }}
+              value={hexInput.toUpperCase()}
+              onChange={(e) => handleHexInputChange(e.target.value)}
+              onBlur={handleHexInputBlur}
               maxLength={7}
               className="flex-1 w-full h-12 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-4 font-mono text-[14px] text-[var(--color-text-primary)] focus:border-[var(--color-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-light)] transition-all uppercase min-w-0"
               placeholder="#FFFFFF"

@@ -68,8 +68,8 @@ export class CanvasRenderer {
     this.lastEnhancementKey = '';
     this.maskImage = null;
     this.markDirty();
-    if (this.lastEditingState && this.lastOptions) {
-      this.render(this.lastEditingState, this.lastOptions);
+    if (this.lastEditingState) {
+      this.render(this.lastEditingState, this.lastOptions ?? { showCheckerboard: true, zoom: 1, panX: 0, panY: 0 });
     }
   }
 
@@ -221,9 +221,17 @@ export class CanvasRenderer {
       srcH = imgH * (crop.height / 100);
     }
 
-    // --- Compute fit-to-canvas dimensions using cropped source size ---
-    const scaleW = cssWidth / srcW;
-    const scaleH = cssHeight / srcH;
+    // --- Calculate trigonometric effective dimensions for rotation ---
+    const rad = ((crop.rotation || 0) * Math.PI) / 180;
+    const cos = Math.abs(Math.cos(rad));
+    const sin = Math.abs(Math.sin(rad));
+
+    const effectiveW = srcW * cos + srcH * sin;
+    const effectiveH = srcW * sin + srcH * cos;
+
+    // --- Compute fit-to-canvas dimensions using effective rotated source size ---
+    const scaleW = cssWidth / effectiveW;
+    const scaleH = cssHeight / effectiveH;
     const fitScale = Math.min(scaleW, scaleH) * zoom;
 
     const drawW = srcW * fitScale;
@@ -356,7 +364,12 @@ export class CanvasRenderer {
 
   // Coordinate Mapping
   
-  screenToImageCoords(mouseX: number, mouseY: number, editingState: EditingState, options: RenderOptions = {}): { x: number, y: number } | null {
+  screenToImageCoords(
+    mouseX: number,
+    mouseY: number,
+    editingState: EditingState,
+    options: RenderOptions = {}
+  ): { x: number; y: number } | null {
     if (!this.sourceImage) return null;
 
     const { zoom = 1, panX = 0, panY = 0 } = options;
@@ -375,25 +388,48 @@ export class CanvasRenderer {
       srcH = imgH * (crop.height / 100);
     }
 
-    const scaleW = cssWidth / srcW;
-    const scaleH = cssHeight / srcH;
+    const rad = ((crop.rotation || 0) * Math.PI) / 180;
+    const cos = Math.abs(Math.cos(rad));
+    const sin = Math.abs(Math.sin(rad));
+
+    const effectiveW = srcW * cos + srcH * sin;
+    const effectiveH = srcW * sin + srcH * cos;
+
+    const scaleW = cssWidth / effectiveW;
+    const scaleH = cssHeight / effectiveH;
     const fitScale = Math.min(scaleW, scaleH) * zoom;
 
     const drawW = srcW * fitScale;
     const drawH = srcH * fitScale;
-    const drawX = (cssWidth - drawW) / 2 + panX;
-    const drawY = (cssHeight - drawH) / 2 + panY;
 
-    if (mouseX < drawX || mouseX > drawX + drawW || mouseY < drawY || mouseY > drawY + drawH) {
+    const centerX = cssWidth / 2 + panX;
+    const centerY = cssHeight / 2 + panY;
+
+    // Translate mouse point relative to center
+    let dx = mouseX - centerX;
+    let dy = mouseY - centerY;
+
+    // Un-rotate by -rad
+    const unRotCos = Math.cos(-rad);
+    const unRotSin = Math.sin(-rad);
+    const unRotX = dx * unRotCos - dy * unRotSin;
+    const unRotY = dx * unRotSin + dy * unRotCos;
+
+    // Un-flip
+    dx = crop.flipHorizontal ? -unRotX : unRotX;
+    dy = crop.flipVertical ? -unRotY : unRotY;
+
+    // Check if point is inside un-rotated drawing box
+    if (dx < -drawW / 2 || dx > drawW / 2 || dy < -drawH / 2 || dy > drawH / 2) {
       return null;
     }
 
-    const croppedX = (mouseX - drawX) / fitScale;
-    const croppedY = (mouseY - drawY) / fitScale;
+    const croppedX = (dx + drawW / 2) / fitScale;
+    const croppedY = (dy + drawH / 2) / fitScale;
 
     return {
       x: croppedX + srcX,
-      y: croppedY + srcY
+      y: croppedY + srcY,
     };
   }
 

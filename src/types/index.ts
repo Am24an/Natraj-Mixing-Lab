@@ -149,6 +149,39 @@ export type DialogType =
 
 export type Theme = 'light' | 'dark' | 'system';
 
+/** Workflow memory — tracks user patterns to pre-fill tools on next session */
+export interface BgRemovalQuality {
+  /** ISO timestamp of the removal */
+  timestamp: number;
+  /** Score 0–100: 100 = perfect clean edges, 0 = poor quality */
+  qualityScore: number;
+  /** Percentage of pixels that were made transparent */
+  transparencyPct: number;
+  /** Whether the user opened Mask Brush after this removal (needing cleanup) */
+  neededManualCleanup: boolean;
+  /** Number of manual brush strokes applied after this removal */
+  brushStrokesAfter: number;
+}
+
+export interface WorkflowMemory {
+  /** Last brush size used in Mask Brush tool */
+  lastBrushSize: number;
+  /** Last brush mode used in Mask Brush tool */
+  lastBrushMode: 'erase' | 'restore';
+  /** Number of times each tool has been activated */
+  toolUsageCounts: Record<string, number>;
+  /** Last background color applied */
+  lastBackgroundColor: string | null;
+  /** Total sessions / photos edited */
+  totalSessions: number;
+  /** Rolling history of the last 10 BG removal quality scores */
+  bgRemovalHistory: BgRemovalQuality[];
+  /** Average BG quality score across all recorded removals (0–100) */
+  avgBgQualityScore: number;
+  /** Count of brush strokes applied in the current session after last BG removal */
+  currentSessionBrushStrokes: number;
+}
+
 export interface UserPreferences {
   theme: Theme;
   lastExportFormat: ImageFormat;
@@ -156,7 +189,20 @@ export interface UserPreferences {
   showStatusBar: boolean;
   autoSave: boolean;
   recentBackgroundColors: string[];
+  /** Workflow memory — learned from user actions */
+  workflowMemory: WorkflowMemory;
 }
+
+export const DEFAULT_WORKFLOW_MEMORY: WorkflowMemory = {
+  lastBrushSize: 20,
+  lastBrushMode: 'erase',
+  toolUsageCounts: {},
+  lastBackgroundColor: null,
+  totalSessions: 0,
+  bgRemovalHistory: [],
+  avgBgQualityScore: 0,
+  currentSessionBrushStrokes: 0,
+};
 
 export const DEFAULT_PREFERENCES: UserPreferences = {
   theme: 'light',
@@ -165,6 +211,7 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   showStatusBar: true,
   autoSave: true,
   recentBackgroundColors: [],
+  workflowMemory: { ...DEFAULT_WORKFLOW_MEMORY },
 };
 
 

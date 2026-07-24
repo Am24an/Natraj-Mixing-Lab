@@ -7,9 +7,18 @@ import { useToast } from '@/hooks/useToast';
 
 export type UpscaleStatus = 'idle' | 'processing' | 'error';
 
-// Singleton Upscaler instance to save memory
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let upscalerInstance: any = null;
+// Singleton Web Worker instance for TFJS Upscaler
+let upscaleWorkerSingleton: Worker | null = null;
+
+function getOrCreateUpscaleWorker(): Worker {
+  if (!upscaleWorkerSingleton) {
+    upscaleWorkerSingleton = new Worker(
+      new URL('../workers/upscaleWorker.ts', import.meta.url),
+      { type: 'module' }
+    );
+  }
+  return upscaleWorkerSingleton;
+}
 
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -40,41 +49,47 @@ export function useUpscaler() {
     }
 
     setStatus('processing');
-    setProgress(10);
+    setProgress(5);
 
     const inputDataUrl = currentProject.originalImage.dataUrl;
-
     let upscaledDataUrl = '';
 
     try {
-      // 1. Try AI Super-Resolution via UpscalerJS + TFJS
-      setProgress(20);
-      const [{ default: Upscaler }, tf] = await Promise.all([
-        import('upscaler'),
-        import('@tensorflow/tfjs'),
-      ]);
+      // 1. AI Super-Resolution via dedicated Web Worker (prevents main thread freeze)
+      const worker = getOrCreateUpscaleWorker();
 
-      await tf.ready();
-      setProgress(35);
+      upscaledDataUrl = await new Promise<string>((resolve, reject) => {
+        const handleMessage = (e: MessageEvent<{ type: string; payload: Record<string, unknown> }>) => {
+          const { type, payload } = e.data;
+          if (type === 'PROGRESS') {
+            setProgress(Number(payload.progress));
+          } else if (type === 'SUCCESS') {
+            worker.removeEventListener('message', handleMessage);
+            worker.removeEventListener('error', handleError);
+            resolve(String(payload.dataUrl));
+          } else if (type === 'ERROR') {
+            worker.removeEventListener('message', handleMessage);
+            worker.removeEventListener('error', handleError);
+            reject(new Error(String(payload.error)));
+          }
+        };
 
-      if (!upscalerInstance) {
-        upscalerInstance = new Upscaler();
-      }
+        const handleError = (err: ErrorEvent) => {
+          worker.removeEventListener('message', handleMessage);
+          worker.removeEventListener('error', handleError);
+          reject(new Error(err.message || 'Worker upscale failed'));
+        };
 
-      setProgress(45);
+        worker.addEventListener('message', handleMessage);
+        worker.addEventListener('error', handleError);
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      const result = await upscalerInstance.upscale(inputDataUrl, {
-        patchSize: 64,
-        padding: 2,
-        progress: (pct: number) => {
-          setProgress(Math.round(45 + pct * 45));
-        },
+        worker.postMessage({
+          type: 'START_UPSCALE',
+          payload: { dataUrl: inputDataUrl },
+        });
       });
-
-      upscaledDataUrl = String(result);
     } catch (aiErr) {
-      console.warn('[useUpscaler] AI Upscaler failed/unavailable, falling back to High-Quality 2x Canvas Resampling:', aiErr);
+      console.warn('[useUpscaler] Worker AI Upscaler failed/unavailable, falling back to High-Quality 2x Canvas Resampling:', aiErr);
       setProgress(60);
 
       // 2. High-Quality 2x Canvas Rescaling Fallback Guarantee

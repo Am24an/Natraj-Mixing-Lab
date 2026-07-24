@@ -12,9 +12,7 @@ interface RightPanelProps {
 }
 
 /**
- * RightPanel — Contextual controls for the active editing tool.
- * Per UIIA/CDVLS: Position and appearance remain constant.
- * Only the content inside changes.
+ * RightPanel — renders contextual tool panels based on active tool.
  */
 export function RightPanel({ activeTool, hasProject }: RightPanelProps) {
   const renderPanel = () => {

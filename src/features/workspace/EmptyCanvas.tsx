@@ -7,17 +7,17 @@ import type { OriginalImage, SupportedMimeType } from '@/types';
 import { useToast } from '@/hooks/useToast';
 
 /**
- * EmptyCanvas — shown when no image is loaded.
- * Per UIIA: welcoming, with upload, drag-drop, privacy message.
+ * EmptyCanvas component — renders photo upload dropzone and privacy badge.
  */
 export function EmptyCanvas() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const createProject = useEditorStore((s) => s.createProject);
   const toast = useToast();
 
-  const handleFiles = async (files: FileList | null) => {
+  const handleFiles = async (files: FileList | File[] | null) => {
     if (!files || files.length === 0) return;
-    const file = files[0];
+    const fileList = Array.from(files);
+    const file = fileList[0];
 
     const validation = validateImageFile(file);
     if (!validation.valid) {
@@ -160,7 +160,9 @@ export function EmptyCanvas() {
           accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
           style={{ display: 'none' }}
           aria-hidden="true"
-          onChange={(e) => void handleFiles(e.target.files)}
+          onChange={(e) => {
+            void handleFiles(e.target.files);
+          }}
         />
       </div>
 

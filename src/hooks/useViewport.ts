@@ -42,13 +42,33 @@ export function useViewport() {
   }, []);
 
   // Enable panning with left click, middle click, or right click drag to move the photo
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+  const handleMouseDown = useCallback((e: React.MouseEvent | React.PointerEvent) => {
     // Allow left-click (0), middle-click (1), or right-click (2) panning
     if (e.button !== 0 && e.button !== 1 && e.button !== 2) return;
-    
-    e.preventDefault(); 
+
     isPanning.current = true;
     lastPan.current = { x: e.clientX, y: e.clientY };
+
+    const onPointerMove = (moveEv: MouseEvent | PointerEvent) => {
+      if (!isPanning.current) return;
+      const dx = moveEv.clientX - lastPan.current.x;
+      const dy = moveEv.clientY - lastPan.current.y;
+      lastPan.current = { x: moveEv.clientX, y: moveEv.clientY };
+      viewportController.pan(dx, dy);
+    };
+
+    const onPointerUp = () => {
+      isPanning.current = false;
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('mousemove', onPointerMove);
+      window.removeEventListener('mouseup', onPointerUp);
+    };
+
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('mousemove', onPointerMove);
+    window.addEventListener('mouseup', onPointerUp);
   }, []);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
