@@ -9,7 +9,10 @@
  *     A blurry or feathered edge spreads over many pixels = lower score.
  *  4. Detect residue — semi-transparent pixels (alpha 10–200) far from the
  *     detected edge indicate background bleed = penalty.
- *  5. Combine into a 0–100 quality score.
+ *  5. Hair-aware heuristic: differentiate between "residue semi-transparency" (bad)
+ *     and "natural hair/strand semi-transparency" (good) by detecting elongated
+ *     directional clusters.
+ *  6. Combine into a 0–100 quality score.
  *
  * Runs entirely off the main thread when called from a Worker, or on the
  * main thread for quick analysis (the pixel math is fast — O(n) single pass).
@@ -133,14 +136,59 @@ export async function analyzeMaskQuality(
   // Clamp: 1px = 100 score, 20px = 0 score
   const edgeSharpnessScore = Math.max(0, Math.min(100, 100 - (avgTransitionWidth - 1) * 5));
 
-  // ── 4. Residue / cleanliness score ──────────────────────────────────────
-  // Count semi-transparent pixels that are NOT at the edge of the subject
-  // boundary. True edge pixels are OK. Semi-transparent pixels isolated in
-  // the background area = residue.
+  // ── 4. Residue / cleanliness score (hair-aware) ─────────────────────────
+  // Count semi-transparent pixels, but discount those that form elongated
+  // directional patterns (likely legitimate hair strands, not residue).
   //
-  // Heuristic: if semiPixels is more than 5% of transparent pixels → residue.
-  const semiRatio = semiPixels / Math.max(1, transparentPixels + semiPixels);
-  const residueCleanlinessScore = Math.max(0, Math.min(100, 100 - semiRatio * 200));
+  // Hair-aware heuristic: sample semi-transparent pixels and check if they
+  // form connected directional runs of 3+ pixels (strand pattern).
+  // If a significant fraction are strand-like, reduce the penalty.
+
+  let strandLikePixels = 0;
+  const STRAND_SAMPLE_STRIDE = 4; // Only check every 4th semi-transparent pixel for speed
+
+  let semiCount = 0;
+  for (let y = 1; y < height - 1; y++) {
+    for (let x = 1; x < width - 1; x++) {
+      const idx = (y * width + x) * 4;
+      const a = data[idx + 3];
+      if (a < 10 || a > 245) continue;
+
+      semiCount++;
+      if (semiCount % STRAND_SAMPLE_STRIDE !== 0) continue;
+
+      // Check for directional run (horizontal or vertical)
+      let hRun = 1;
+      for (let dx = 1; x + dx < width && dx < 6; dx++) {
+        const nA = data[((y * width) + x + dx) * 4 + 3];
+        if (nA > 10 && nA < 245 && Math.abs(nA - a) < 80) hRun++;
+        else break;
+      }
+
+      let vRun = 1;
+      for (let dy = 1; y + dy < height && dy < 6; dy++) {
+        const nA = data[((y + dy) * width + x) * 4 + 3];
+        if (nA > 10 && nA < 245 && Math.abs(nA - a) < 80) vRun++;
+        else break;
+      }
+
+      if (hRun >= 3 || vRun >= 3) {
+        strandLikePixels++;
+      }
+    }
+  }
+
+  // Calculate what fraction of semi-transparent pixels are strand-like
+  const sampledSemiCount = Math.floor(semiCount / STRAND_SAMPLE_STRIDE);
+  const strandFraction = sampledSemiCount > 0 ? strandLikePixels / sampledSemiCount : 0;
+
+  // Adjusted residue scoring:
+  // - Reduced penalty base from 200 to 140 (less aggressive)
+  // - Discount strand-like pixels from the penalty (they're hair, not residue)
+  const effectiveSemiRatio = semiPixels / Math.max(1, transparentPixels + semiPixels);
+  const strandDiscount = strandFraction * 0.5; // up to 50% reduction in penalty
+  const adjustedPenalty = Math.max(0, effectiveSemiRatio * 140 * (1 - strandDiscount));
+  const residueCleanlinessScore = Math.max(0, Math.min(100, 100 - adjustedPenalty));
 
   // ── 5. Overall quality score ─────────────────────────────────────────────
   // Weighted combination: edge sharpness matters most for album photos

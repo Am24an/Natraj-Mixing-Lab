@@ -11,27 +11,19 @@ export function EraserPanel() {
 
   if (!eraser || !background) return null;
 
-  if (!background.isRemoved) {
-    return (
-      <div className="flex flex-col h-full space-y-4 p-1">
-        <h2 className="text-[16px] font-semibold text-[var(--color-text-primary)]">
-          Mask Brush
-        </h2>
-        <div className="p-4 bg-[var(--color-surface-secondary)] border border-[var(--color-border)] rounded-md flex flex-col items-center text-center gap-3">
-          <Eraser size={28} className="text-[var(--color-text-muted)]" />
-          <p className="text-[13px] text-[var(--color-text-secondary)]">
-            Remove background first to use the mask brush.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="flex flex-col h-full gap-5 p-1">
-      <h2 className="text-[16px] font-semibold text-[var(--color-text-primary)] mb-1">
-        Mask Brush
-      </h2>
+      <div>
+        <h2 className="text-[16px] font-semibold text-[var(--color-text-primary)] mb-0.5">
+          Mask Brush
+        </h2>
+        <p className="text-[12px] text-[var(--color-text-muted)]">
+          {background.isRemoved
+            ? 'Touch up or refine mask boundaries.'
+            : 'Brush to erase areas directly on photo.'
+          }
+        </p>
+      </div>
 
       {/* Mode Selector */}
       <div className="flex flex-col gap-2">

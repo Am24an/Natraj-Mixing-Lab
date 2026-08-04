@@ -125,8 +125,21 @@ export class CanvasRenderer {
 
   
   applyBrushStroke(imgX: number, imgY: number, radius: number, mode: 'erase' | 'restore' | 'pan'): void {
-    if (mode === 'pan' || !this.maskImage || !this.sourceImage) return;
+    if (mode === 'pan' || !this.sourceImage) return;
     
+    // Auto-initialize mask from original source image if not already present
+    // Enables Mask Brush to be used BEFORE running AI background removal
+    if (!this.maskImage) {
+      const w = this.sourceImage.naturalWidth;
+      const h = this.sourceImage.naturalHeight;
+      const canvas = new OffscreenCanvas(w, h);
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      if (ctx) {
+        ctx.drawImage(this.sourceImage, 0, 0);
+        this.maskImage = canvas;
+      }
+    }
+
     // Only works if maskImage is an OffscreenCanvas
     if (!(this.maskImage instanceof OffscreenCanvas)) return;
     
@@ -240,7 +253,8 @@ export class CanvasRenderer {
     const drawY = (cssHeight - drawH) / 2 + panY;
 
     // --- Background layer ---
-    if (!isComparison && background.isRemoved) {
+    const hasActiveMask = background.isRemoved || this.maskImage !== null;
+    if (!isComparison && hasActiveMask) {
       if (background.replacementColor) {
         this.ctx.fillStyle = background.replacementColor;
         this.ctx.fillRect(drawX, drawY, drawW, drawH);
@@ -253,7 +267,7 @@ export class CanvasRenderer {
     const { sharpness, highlights, shadows } = enhancement;
     const isPixelProcessingNeeded = sharpness !== 0 || highlights !== 0 || shadows !== 0;
     let imageToDraw: CanvasImageSource = this.sourceImage;
-    const useMask = !isComparison && background.isRemoved && this.maskImage;
+    const useMask = !isComparison && hasActiveMask && this.maskImage;
     if (useMask) {
       imageToDraw = this.maskImage!;
     }
