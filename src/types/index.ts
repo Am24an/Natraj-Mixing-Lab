@@ -1,4 +1,4 @@
-// Core Types — Natraj Mixing Lab Passport Photo Studio
+// Core Types — Natraj Studio & Mixing Lab Passport Photo Studio
 
 // Image & Project Types
 

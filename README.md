@@ -1,6 +1,6 @@
 <div align="center">
   <img src="https://img.icons8.com/color/120/000000/camera--v1.png" alt="Logo" width="80" />
-  <h1>Natraj Mixing Lab – Passport Photo Studio</h1>
+  <h1>Natraj Studio & Mixing Lab – Passport Photo Studio</h1>
   <p>A completely serverless, AI-powered browser application for generating perfect passport photos, removing backgrounds, and upscaling image resolution.</p>
 
   <div>
@@ -12,14 +12,14 @@
 </div>
 
 <div align="center">
-  <img src="Screenshot.png" alt="Natraj Mixing Lab Screenshot" width="800" style="border-radius: 12px; box-shadow: 0 4px 14px rgba(0,0,0,0.1);" />
+  <img src="Screenshot.png" alt="Natraj Studio & Mixing Lab Screenshot" width="800" style="border-radius: 12px; box-shadow: 0 4px 14px rgba(0,0,0,0.1);" />
 </div>
 
 ---
 
 ## 🌟 Overview
 
-**Natraj Mixing Lab** is a professional-grade image editing studio designed specifically for standardizing portraits and passport photos.
+**Natraj Studio & Mixing Lab** is a professional-grade image editing studio designed specifically for standardizing portraits and passport photos.
 
 Unlike traditional photo editors, **everything runs 100% locally in your browser**. No images are ever uploaded to a server, ensuring complete data privacy for your users. By leveraging WebAssembly (WASM) and WebGL via TensorFlow.js, this application brings desktop-class AI models directly to the client side.
 

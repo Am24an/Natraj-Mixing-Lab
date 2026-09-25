@@ -81,7 +81,7 @@ export function LeftToolbar({ hasProject }: LeftToolbarProps) {
           disabled={!hasProject}
           title="Upload new photo"
           aria-label="New Photo"
-          className={cn('w-full flex-col gap-1 h-[56px] rounded-sm text-[var(--color-primary)]')}
+          className={cn('w-full flex-col gap-1 h-[56px] rounded-sm text-[var(--color-primary)] cursor-pointer')}
         >
           <Plus size={18} strokeWidth={2} />
           <span style={{ fontSize: '10px', fontWeight: 500 }}>New</span>
@@ -97,7 +97,7 @@ export function LeftToolbar({ hasProject }: LeftToolbarProps) {
           disabled={!hasProject}
           title="Reset all edits"
           aria-label="Reset all edits"
-          className={cn('w-full flex-col gap-1 h-[56px] rounded-sm')}
+          className={cn('w-full flex-col gap-1 h-[56px] rounded-sm cursor-pointer')}
         >
           <RotateCcw size={18} strokeWidth={1.75} />
           <span style={{ fontSize: '10px' }}>Reset</span>
@@ -125,6 +125,25 @@ function ToolButton({ tool, isActive, isDisabled, onClick }: ToolButtonProps) {
         position: 'relative',
       }}
     >
+      {/* Studio Active Left Indicator Bar */}
+      {isActive && (
+        <span
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            left: '0',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            width: '3.5px',
+            height: '26px',
+            backgroundColor: 'var(--color-primary)',
+            borderRadius: '0 4px 4px 0',
+            boxShadow: '0 0 10px var(--color-primary)',
+            zIndex: 10,
+          }}
+        />
+      )}
+
       <button
         type="button"
         onClick={onClick}
@@ -132,6 +151,7 @@ function ToolButton({ tool, isActive, isDisabled, onClick }: ToolButtonProps) {
         aria-pressed={isActive}
         aria-label={`${tool.label} (${tool.shortcut})`}
         title={`${tool.label}  [${tool.shortcut}]`}
+        className="cursor-pointer"
         style={{
           width: '100%',
           height: '56px',

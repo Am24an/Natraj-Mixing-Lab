@@ -2,7 +2,7 @@
   "name": "natraj-passport-studio",
   "private": true,
   "version": "1.0.0",
-  "description": "Natraj Mixing Lab – Browser-Based Passport Photo Studio",
+  "description": "Natraj Studio & Mixing Lab – Browser-Based Passport Photo Studio",
   "type": "module",
   "scripts": {
     "dev": "vite",

@@ -72,7 +72,7 @@ export function TopNavigation({
               whiteSpace: 'nowrap',
             }}
           >
-            Natraj Mixing Lab
+            Natraj Studio & Mixing Lab
           </span>
           <span
             style={{

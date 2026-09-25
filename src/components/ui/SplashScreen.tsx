@@ -58,7 +58,7 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
             textShadow: '0 4px 12px rgba(0,0,0,0.2)'
           }}
         >
-          Natraj Mixing Lab
+          Natraj Studio & Mixing Lab
         </h1>
         <p
           style={{

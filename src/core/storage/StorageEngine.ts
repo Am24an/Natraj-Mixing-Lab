@@ -1,4 +1,4 @@
-// StorageEngine — IndexedDB persistence for Natraj Passport Photo Studio
+// StorageEngine — IndexedDB persistence for Natraj Studio & Mixing Lab Passport Photo Studio
 // Storage Engine
 //
 // Architecture (SOLID compliant):

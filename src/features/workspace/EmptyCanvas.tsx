@@ -6,8 +6,15 @@ import { validateImageFile, loadImageFromFile, fileToDataUrl, mimeTypeToFormat, 
 import type { OriginalImage, SupportedMimeType } from '@/types';
 import { useToast } from '@/hooks/useToast';
 
+const QUICK_PRESETS = [
+  { flag: '🇺🇸', label: 'US Passport', size: '2×2 in (51×51mm)' },
+  { flag: '🇮🇳', label: 'India Passport', size: '35×45mm' },
+  { flag: '🇪🇺', label: 'Schengen / UK', size: '35×45mm' },
+  { flag: '📄', label: 'ID & Visa', size: 'Standard' },
+];
+
 /**
- * EmptyCanvas component — renders photo upload dropzone and privacy badge.
+ * EmptyCanvas component — renders photo upload dropzone, quick passport presets, and privacy badge.
  */
 export function EmptyCanvas() {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -69,7 +76,7 @@ export function EmptyCanvas() {
         width: '100%',
         height: '100%',
         padding: 'var(--space-xl)',
-        gap: 'var(--space-xl)',
+        gap: 'var(--space-lg)',
       }}
     >
       {/* Drop Zone */}
@@ -80,11 +87,11 @@ export function EmptyCanvas() {
         aria-label="Image upload area"
         style={{
           width: '100%',
-          maxWidth: '480px',
+          maxWidth: '520px',
           border: '2px dashed var(--color-border)',
           borderRadius: 'var(--radius-xl)',
           background: 'var(--color-surface)',
-          padding: 'var(--space-3xl) var(--space-xl)',
+          padding: 'var(--space-2xl) var(--space-xl)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -106,8 +113,8 @@ export function EmptyCanvas() {
         {/* Icon */}
         <div
           style={{
-            width: '80px',
-            height: '80px',
+            width: '72px',
+            height: '72px',
             borderRadius: 'var(--radius-full)',
             background: 'var(--color-primary-light)',
             display: 'flex',
@@ -120,7 +127,7 @@ export function EmptyCanvas() {
         </div>
 
         {/* Text */}
-        <div style={{ textAlign: 'center', gap: '8px', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ textAlign: 'center', gap: '6px', display: 'flex', flexDirection: 'column' }}>
           <h2
             style={{
               fontSize: 'var(--font-size-xl)',
@@ -131,11 +138,24 @@ export function EmptyCanvas() {
             Upload your photo
           </h2>
           <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)' }}>
-            Drag & drop or click to select
+            Drag & drop or click to choose photo
           </p>
           <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)' }}>
-            JPEG · PNG · WebP · Up to 50MB
+            Supports JPEG · PNG · WebP · Up to 50MB
           </p>
+        </div>
+
+        {/* Quick Passport Preset Badges */}
+        <div className="flex flex-wrap items-center justify-center gap-1.5 pt-1">
+          {QUICK_PRESETS.map((preset) => (
+            <span
+              key={preset.label}
+              className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium rounded-full bg-[var(--color-surface-secondary)] text-[var(--color-text-secondary)] border border-[var(--color-border)] shadow-xs"
+            >
+              <span>{preset.flag}</span>
+              <span>{preset.label}</span>
+            </span>
+          ))}
         </div>
 
         {/* Upload Button */}
@@ -143,7 +163,7 @@ export function EmptyCanvas() {
           variant="primary"
           size="lg"
           leftIcon={<Upload size={16} strokeWidth={2} />}
-          style={{ paddingLeft: '32px', paddingRight: '32px', flexShrink: 0 }}
+          style={{ paddingLeft: '32px', paddingRight: '32px', flexShrink: 0, cursor: 'pointer' }}
           onClick={(e) => {
             e.stopPropagation();
             fileInputRef.current?.click();
@@ -181,7 +201,7 @@ export function EmptyCanvas() {
       >
         <Shield size={14} strokeWidth={2} style={{ color: 'var(--color-primary)', flexShrink: 0 }} />
         <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-secondary)' }}>
-          Your images stay on your device — never uploaded to any server
+          100% Client-Side — Your photos stay on your device and are never uploaded
         </span>
       </div>
     </div>
